@@ -161,8 +161,11 @@
                       <td>${BC.format.shortDate(item.user.createdAt)}</td>
                       <td class="text-right">
                         ${item.user.email !== BC.auth.ADMIN_EMAIL ? `
+                          <button class="btn btn-secondary btn-sm" onclick="manageUser('${item.user.id}')" title="Gerenciar Conta">
+                            ${BC.icon('settings', 14)}
+                          </button>
                           <button class="btn btn-danger btn-sm" onclick="deleteUser('${item.user.id}')">
-                            ${BC.icon('trash', 14)} Excluir
+                            ${BC.icon('trash', 14)}
                           </button>
                         ` : '<small style="color:var(--text-muted)">Super Admin</small>'}
                       </td>
@@ -220,7 +223,85 @@
             `}
           </div>
         </div>
+
+        <!-- User Management Modal -->
+        <div class="modal-overlay" id="mgmtModal">
+          <div class="modal" style="max-width: 450px;">
+            <div class="modal-header">
+              <h3 id="mgmtTitle">Gerenciar Usuário</h3>
+              <button class="modal-close" onclick="BC.modal.close('mgmtModal')">${BC.icon('x')}</button>
+            </div>
+            <div class="modal-body">
+              <input type="hidden" id="mgmtUserId" />
+              
+              <div class="card mb-4" style="background:var(--bg-input); padding: 12px;">
+                <label class="form-label" style="margin-bottom: 8px;">Ajustar Saldo e Vendas</label>
+                <div class="grid grid-2" style="gap: 8px;">
+                   <div class="form-group">
+                     <small>Total de Vendas</small>
+                     <input type="number" id="mgmtSales" class="form-input" />
+                   </div>
+                   <div class="form-group">
+                     <small>Faturamento (R$)</small>
+                     <input type="number" id="mgmtTotal" class="form-input" />
+                   </div>
+                </div>
+                <div class="form-group mt-2">
+                   <small>Taxa de Conversão Alvo (%)</small>
+                   <input type="number" id="mgmtConv" class="form-input" placeholder="Ex: 85" />
+                </div>
+                <button class="btn btn-primary btn-sm mt-3 w-full" onclick="saveMetrics()">Aplicar Ajuste</button>
+              </div>
+
+              <div class="card" style="background:var(--bg-input); padding: 12px;">
+                <label class="form-label" style="margin-bottom: 8px;">Gerar Notificação Push</label>
+                <div class="form-group mb-2">
+                  <input type="text" id="notifTitle" class="form-input" placeholder="Título (ex: Venda Realizada!)" />
+                </div>
+                <div class="form-group mb-2">
+                  <textarea id="notifMsg" class="form-textarea" placeholder="Mensagem (ex: Você recebeu R$ 197,00)"></textarea>
+                </div>
+                <button class="btn btn-secondary btn-sm w-full" onclick="sendNotif()">Enviar Agora</button>
+              </div>
+            </div>
+          </div>
+        </div>
       `;
+      window.manageUser = (id) => {
+        const u = BC.users.get(id);
+        const revenue = revenueByUser[id] || { total: 0, sales: 0 };
+        document.getElementById('mgmtUserId').value = id;
+        document.getElementById('mgmtTitle').textContent = `Gerenciar: ${u.name}`;
+        document.getElementById('mgmtTotal').value = revenue.total;
+        document.getElementById('mgmtSales').value = revenue.sales;
+        BC.modal.open('mgmtModal');
+      };
+
+      window.saveMetrics = () => {
+        const id = document.getElementById('mgmtUserId').value;
+        const total = Number(document.getElementById('mgmtTotal').value);
+        const sales = Number(document.getElementById('mgmtSales').value);
+        const conv = Number(document.getElementById('mgmtConv').value);
+
+        BC.admin.adjustMetrics(id, total, sales);
+        if (conv > 0 && conv <= 100) {
+          BC.admin.adjustConversion(id, conv);
+        }
+
+        BC.toast.success('Métricas Ajustadas', 'O saldo, vendas e conversão foram sincronizados.');
+        window.location.reload();
+      };
+
+      window.sendNotif = () => {
+        const id = document.getElementById('mgmtUserId').value;
+        const t = document.getElementById('notifTitle').value;
+        const m = document.getElementById('notifMsg').value;
+        if (!t || !m) return BC.toast.error('Erro', 'Preencha título e mensagem.');
+        BC.admin.sendPush(id, t, m);
+        BC.toast.success('Notificação Enviada', 'O lojista receberá o aviso em breve.');
+        BC.modal.close('mgmtModal');
+      };
+
       BCLayout.sidebar.init();
     }
   </script>

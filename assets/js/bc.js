@@ -69,6 +69,79 @@ const BC = {
       if (!BC.auth.isAdmin()) { window.location.href = '/pages/dashboard.html'; return false; }
       return true;
     },
+
+    async setupBiometrics() {
+      if (!window.PublicKeyCredential) {
+        BC.toast.error('Não suportado', 'Seu navegador não suporta autenticação biométrica.');
+        return false;
+      }
+      const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+      if (!available) {
+        BC.toast.error('Indisponível', 'Nenhum sensor de biometria ou senha de dispositivo encontrado.');
+        return false;
+      }
+
+      try {
+        const challenge = new Uint8Array(32);
+        window.crypto.getRandomValues(challenge);
+        const user = BC.auth.getCurrentUser();
+
+        await navigator.credentials.create({
+          publicKey: {
+            challenge,
+            rp: { name: "BatCheckout" },
+            user: {
+              id: new TextEncoder().encode(user.id),
+              name: user.email,
+              displayName: user.name
+            },
+            pubKeyCredParams: [{ alg: -7, type: "public-key" }],
+            authenticatorSelection: { authenticatorAttachment: "platform" },
+            timeout: 60000
+          }
+        });
+
+        BC.auth.updateUser(user.id, { biometricsEnabled: true });
+        BC.toast.success('Biometria Ativada', 'Seu FaceID/Senha foi vinculado com sucesso.');
+        return true;
+      } catch (err) {
+        console.error(err);
+        BC.toast.error('Erro', 'Falha ao configurar biometria. Verifique as permissões do sistema.');
+        return false;
+      }
+    },
+
+    async verifyBiometrics() {
+      if (!window.PublicKeyCredential) return true; // Fallback for unsupported
+      try {
+        const challenge = new Uint8Array(32);
+        window.crypto.getRandomValues(challenge);
+        const cred = await navigator.credentials.get({
+          publicKey: {
+            challenge,
+            timeout: 60000,
+            userVerification: "required"
+          }
+        });
+        return !!cred;
+      } catch (err) {
+        return false;
+      }
+    },
+
+    updateUser(id, data) {
+      const users = BC.storage.get('users', []);
+      const idx = users.findIndex(u => u.id === id);
+      if (idx !== -1) {
+        users[idx] = { ...users[idx], ...data };
+        BC.storage.set('users', users);
+        // Refresh session if it's the current user
+        const sess = BC.auth.getSession();
+        if (sess && sess.id === id) {
+          BC.storage.set('session', { ...sess, ...data });
+        }
+      }
+    }
   },
 
   // ===================================================================
@@ -478,6 +551,94 @@ const BC = {
       });
     }
     BC.storage.set(`transactions_${uid}`, txs);
+  },
+
+  // ===================================================================
+  // ADMIN ADVANCED TOOLS
+  // ===================================================================
+  admin: {
+    adjustMetrics(userId, targetTotal, targetSales) {
+      const key = `transactions_${userId}`;
+      const txs = BC.storage.get(key, []);
+      const approved = txs.filter(t => t.status === 'approved');
+      const currentTotal = approved.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+      const currentSales = approved.length;
+
+      const diffTotal = targetTotal - currentTotal;
+      const diffSales = targetSales - currentSales;
+
+      if (diffSales > 0) {
+        for (let i = 0; i < diffSales; i++) {
+          txs.unshift({
+            id: 'adj_s_' + BC.uuid().substring(0, 8),
+            productName: 'Ajuste de Vendas',
+            customerName: 'Sistema (Admin)',
+            amount: (diffTotal / diffSales).toFixed(2),
+            status: 'approved',
+            method: 'adjustment',
+            createdAt: new Date().toISOString()
+          });
+        }
+      } else if (diffTotal !== 0) {
+        txs.unshift({
+          id: 'adj_v_' + BC.uuid().substring(0, 8),
+          productName: 'Ajuste de Saldo',
+          customerName: 'Sistema (Admin)',
+          amount: diffTotal.toFixed(2),
+          status: 'approved',
+          method: 'adjustment',
+          createdAt: new Date().toISOString()
+        });
+      }
+      BC.storage.set(key, txs);
+    },
+    adjustConversion(userId, targetPercent) {
+      const key = `transactions_${userId}`;
+      const txs = BC.storage.get(key, []);
+      const approved = txs.filter(t => t.status === 'approved').length;
+
+      if (approved === 0) return; // Cannot set rate if no sales
+
+      // targetPercent = (approved / total) * 100
+      // total = (approved * 100) / targetPercent
+      const targetTotal = Math.round((approved * 100) / targetPercent);
+      const currentTotal = txs.length;
+      const diff = targetTotal - currentTotal;
+
+      if (diff > 0) {
+        // Add pending/refused to lower the rate
+        for (let i = 0; i < diff; i++) {
+          txs.unshift({
+            id: 'adj_c_' + BC.uuid().substring(0, 8),
+            productName: 'Ajuste de Conversão',
+            customerName: 'Lead (Ajuste)',
+            amount: '0.00',
+            status: Math.random() > 0.5 ? 'pending' : 'refused',
+            method: 'pix',
+            createdAt: new Date().toISOString()
+          });
+        }
+      } else if (diff < 0) {
+        // We would need to remove non-approved transactions to increase the rate
+        // but for safety we'll just filter out some pending/refused
+        let toRemove = Math.abs(diff);
+        for (let i = txs.length - 1; i >= 0 && toRemove > 0; i--) {
+          if (txs[i].status !== 'approved') {
+            txs.splice(i, 1);
+            toRemove--;
+          }
+        }
+      }
+      BC.storage.set(key, txs);
+    },
+    sendPush(userId, title, message) {
+      const notifs = BC.storage.get(`notifications_${userId}`, []);
+      notifs.unshift({ id: BC.uuid(), title, message, createdAt: new Date().toISOString(), read: false });
+      BC.storage.set(`notifications_${userId}`, notifs);
+
+      const channel = new BroadcastChannel(`notif_${userId}`);
+      channel.postMessage({ type: 'push', title, message });
+    }
   },
 
   // ===================================================================

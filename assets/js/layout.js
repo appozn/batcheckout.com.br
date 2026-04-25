@@ -125,11 +125,27 @@ window.BCLayout = {
 
     // Mobile Restriction Logic
     const isMobile = window.innerWidth <= 768;
-    if (isMobile) {
+    const isAdmin = BC.auth.isAdmin();
+    if (isMobile && !isAdmin) {
       if (activePage !== 'dashboard') {
         window.location.href = 'dashboard.html';
         return null;
       }
+    }
+
+    // Real-time Push Listener
+    const uid = BC.auth.getCurrentUser()?.id;
+    if (uid) {
+      const channel = new BroadcastChannel(`notif_${uid}`);
+      channel.onmessage = (event) => {
+        if (event.data.type === 'push') {
+          BC.toast.success(event.data.title, event.data.message);
+          // Try to show browser native notification if allowed
+          if ('Notification' in window && Notification.permission === 'granted') {
+            try { new Notification(event.data.title, { body: event.data.message, icon: '../assets/logo.png' }); } catch (e) { }
+          }
+        }
+      };
     }
 
     return document.getElementById('pageContent');
