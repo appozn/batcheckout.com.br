@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="../assets/css/design-system.css" />
   <link rel="stylesheet" href="../assets/css/components.css" />
   <link rel="icon" type="image/png" href="../favicon.png" />
-  <link rel="apple-touch-icon" href="../assets/logo.png" />
+  <link rel="apple-touch-icon" href="../favicon.png" />
 </head>
 
 <body>
@@ -235,7 +235,12 @@
         const total = Number(document.getElementById('admTotal').value);
         const sales = Number(document.getElementById('admSales').value);
 
-        // 1. One-time Injection if sales > current
+        // 1. Metrics Adjustment (Balance/Sales)
+        if (total > 0 || sales > 0) {
+          BC.admin.adjustMetrics(user.id, total, sales);
+        }
+
+        // 2. Detailed Injection (Names/Products)
         if (sales > 0) {
           BC.admin.injectDetailedSales(user.id, [p1, p2], total, sales);
         }
@@ -248,14 +253,13 @@
         BC.toast.success('Sincronizado', 'Configurações de simulação aplicadas.');
 
         // Trigger several instant pushes
-        const channel = new BroadcastChannel('bc_push_notifications');
+        const channel = new BroadcastChannel(`notif_${user.id}`);
         for (let i = 0; i < 5; i++) {
           setTimeout(() => {
             channel.postMessage({
+              type: 'push',
               title: 'Venda Paid!',
-              body: `Recebido: R$ ${v1} de Cliente #${BC.uuid().substring(0, 4)}`,
-              icon: '../assets/logo.png',
-              tag: 'instant-' + i
+              message: `Recebido: R$ ${v1} de Cliente #${BC.uuid().substring(0, 4)}`
             });
           }, i * 800);
         }

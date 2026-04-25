@@ -30,7 +30,7 @@ window.BCLayout = {
     return `
       <div class="sidebar" id="sidebarEl">
         <div class="sidebar-logo" style="justify-content: center; padding: 16px;">
-          <a href="dashboard.html"><img src="../assets/logo.png" alt="BatCheckout Logo" style="height: 60px; object-fit: contain; margin-top: 8px; margin-bottom: 8px;" /></a>
+          <a href="dashboard.html"><img src="../assets/js/logo.png" alt="BatCheckout Logo" style="height: 85px; object-fit: contain; margin-top: 8px; margin-bottom: 8px;" /></a>
         </div>
         <nav class="sidebar-nav">
           <div class="nav-section-label">Menu</div>
@@ -141,12 +141,11 @@ window.BCLayout = {
               const value = config.values[Math.floor(Math.random() * config.values.length)] || 97;
 
               // 1. Pix Gerado
-              const channel = new BroadcastChannel('bc_push_notifications');
+              const channel = new BroadcastChannel(`notif_${user.id}`);
               channel.postMessage({
+                type: 'push',
                 title: 'Pix Gerado!',
-                body: `${name} gerou um Pix para ${product}`,
-                icon: '../assets/logo.png',
-                tag: 'pix-generated'
+                message: `${name} gerou um Pix para ${product}`
               });
 
               // 2. Wait 12 seconds then Paid
@@ -166,10 +165,9 @@ window.BCLayout = {
 
                 // Final Push
                 channel.postMessage({
+                  type: 'push',
                   title: 'Venda Paid!',
-                  body: `Recebido: R$ ${value} de ${name}`,
-                  icon: '../assets/logo.png',
-                  tag: 'venda-paga'
+                  message: `Recebido: R$ ${value} de ${name}`
                 });
 
                 window.BC_AutoPilot.processedCount++;
