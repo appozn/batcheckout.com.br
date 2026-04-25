@@ -1,0 +1,179 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Integrations — BatCheckout</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/css/design-system.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
+</head>
+
+<body>
+  <script src="../assets/js/bc.js"></script>
+  <script src="../assets/js/layout.js"></script>
+  <script src="../assets/js/PixKeySelector.js"></script>
+
+  <script>
+    const content = BCLayout.init('integrations', 'Integrações e Gateways', 'Conecte seus provedores de pagamento favoritos');
+
+    if (content) {
+      const gws = ['API Banco Central', 'InvictusPay', 'Stripe', 'BlackCat', 'TriboPay', 'TrexPay', 'Disrupty', 'Hotmart', 'Shopify'];
+      const current = BC.integrations.get();
+
+      const render = () => {
+        content.innerHTML = `
+          <div class="page-header">
+            <div class="page-header-left">
+              <h2>Gateways de Pagamento</h2>
+              <p>O BatCheckout distribui as transações para a plataforma que você escolher</p>
+            </div>
+          </div>
+
+          <div class="grid grid-3 mb-6">
+            ${gws.map(gw => {
+          const c = current[gw];
+          return `
+                <div class="gateway-card ${c ? 'connected' : ''}" onclick="openGateway('${gw}')">
+                  <div class="gateway-logo" style="background:${c ? 'var(--success)' : 'var(--bg-input)'}; color:${c ? 'white' : 'var(--text-muted)'}">${gw.substring(0, 2).toUpperCase()}</div>
+                  <div class="flex-1">
+                    <div class="gateway-name">${gw}</div>
+                    <div class="gateway-status">${c ? 'Conectado' : (gw !== 'API Banco Central' ? '<span style="color:var(--warning)">Em Breve</span>' : 'Não configurado')}</div>
+                  </div>
+                  <div>${c ? BC.icon('check', 16) : ''}</div>
+                </div>
+              `;
+        }).join('')}
+          </div>
+
+          <div class="page-header" style="margin-top:40px;">
+            <div class="page-header-left">
+              <h2>Integrações de Tracking</h2>
+              <p>Conecte ferramentas analíticas como UTMify e Pixels</p>
+            </div>
+          </div>
+
+          <div class="grid grid-2">
+            <div class="card">
+              <div class="flex items-center gap-4 mb-4">
+                <div class="pixel-icon" style="background:rgba(59,130,246,0.15); color:#3b82f6;">${BC.icon('trending')}</div>
+                <div>
+                  <div style="font-weight:600;">UTMify API</div>
+                  <div style="font-size:0.75rem; color:var(--text-muted);">Acompanhe origens e afiliações</div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Token de Acesso Mestre</label>
+                <input type="text" id="utmify" class="form-input" value="${current.utmify || ''}" placeholder="sk_live_..." />
+              </div>
+              <button class="btn btn-primary mt-4" onclick="saveIntegration('utmify')">Salvar Token</button>
+            </div>
+          </div>
+
+          <!-- Gateway Modal -->
+          <div class="modal-overlay" id="gwModal">
+            <div class="modal">
+              <div class="modal-header">
+                <h3 id="gwTitle">Configurar Gateway</h3>
+                <button class="modal-close" onclick="BC.modal.close('gwModal')">${BC.icon('x')}</button>
+              </div>
+              <form id="gwForm" onsubmit="event.preventDefault()">
+                <div class="modal-body" id="gwStandardBody">
+                  <input type="hidden" id="gwId" />
+                  <p style="font-size:0.875rem; color:var(--text-muted);">Insira as chaves de API da sua conta. Elas são criptografadas localmente.</p>
+                  <div class="form-group mt-2">
+                    <label class="form-label" id="lblGwPub">Chave Pública (Public Key)</label>
+                    <input type="text" id="gwPub" class="form-input" placeholder="pk_..." />
+                  </div>
+                  <div class="form-group mt-2" id="boxGwSec">
+                    <label class="form-label">Chave Privada (Secret Key)</label>
+                    <input type="password" id="gwSec" class="form-input" placeholder="sk_..." />
+                  </div>
+                </div>
+                <div class="modal-footer" id="gwStandardFooter">
+                  <button type="button" class="btn btn-danger" id="gwRemoveBtn" style="display:none;" onclick="removeGateway()">Desconectar</button>
+                  <button type="button" class="btn btn-ghost" onclick="BC.modal.close('gwModal')">Cancelar</button>
+                  <button type="button" class="btn btn-primary" onclick="submitLegacyGw()">Conectar</button>
+                </div>
+                <div id="pixContainer" style="display:none; padding:16px;"></div>
+              </form>
+            </div>
+          </div>
+        `;
+      };
+
+      render();
+
+      window.openGateway = (gw) => {
+        if (gw !== 'API Banco Central') {
+          return BC.toast.error('Em breve!', `A integração com ${gw} estará disponível na próxima atualização.`);
+        }
+        const c = BC.integrations.get();
+        document.getElementById('gwTitle').textContent = `Conectar ${gw}`;
+        document.getElementById('gwId').value = gw;
+        document.getElementById('gwPub').value = c[gw]?.pub || '';
+        document.getElementById('gwSec').value = c[gw]?.sec || '';
+        document.getElementById('gwRemoveBtn').style.display = c[gw] ? 'block' : 'none';
+
+        if (gw === 'API Banco Central') {
+          document.getElementById('gwStandardBody').style.display = 'none';
+          document.getElementById('gwStandardFooter').style.display = 'none';
+          document.getElementById('pixContainer').style.display = 'block';
+
+          new PixKeySelector('pixContainer', {
+            onSuccess: (chave, tipo) => {
+              BC.integrations.set({ 'API Banco Central': { pub: chave, type: tipo, sec: 'none' } });
+              BC.toast.success('Integrado', 'Chave PIX ativada com sucesso!');
+              BC.modal.close('gwModal');
+              setTimeout(() => window.location.reload(), 500);
+            },
+            onError: (err) => { }
+          });
+        } else {
+          document.getElementById('gwStandardBody').style.display = 'block';
+          document.getElementById('gwStandardFooter').style.display = 'flex';
+          document.getElementById('pixContainer').style.display = 'none';
+          document.getElementById('lblGwPub').textContent = 'Chave Pública (Public Key)';
+          document.getElementById('gwPub').placeholder = 'pk_...';
+          document.getElementById('boxGwSec').style.display = 'block';
+        }
+        BC.modal.open('gwModal');
+      };
+
+      window.submitLegacyGw = () => {
+        const gw = document.getElementById('gwId').value;
+        const pub = document.getElementById('gwPub').value;
+        const sec = document.getElementById('gwSec').value;
+
+        if (gw !== 'API Banco Central' && (!pub || !sec)) return BC.toast.error('Atenção', 'Preencha ambas as chaves.');
+
+        BC.integrations.set({ [gw]: { pub, sec } });
+        BC.toast.success('Integrado', `${gw} conectado com sucesso!`);
+        BC.modal.close('gwModal');
+        setTimeout(() => window.location.reload(), 500);
+      };
+
+      window.removeGateway = () => {
+        const gw = document.getElementById('gwId').value;
+        const conf = BC.integrations.get();
+        delete conf[gw];
+        BC.storage.set(BC.integrations._key(), conf);
+        BC.toast.success('Desconectado', `${gw} removido.`);
+        BC.modal.close('gwModal');
+        setTimeout(() => window.location.reload(), 500);
+      };
+
+      window.saveIntegration = (id) => {
+        const val = document.getElementById(id).value;
+        BC.integrations.set({ [id]: val });
+        BC.toast.success('Salvo', 'Configurações de tracking atualizadas.');
+      };
+
+      BCLayout.sidebar.init();
+    }
+  </script>
+</body>
+
+</html>

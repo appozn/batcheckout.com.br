@@ -1,0 +1,394 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Login — BatCheckout</title>
+    <meta name="description" content="Acesse sua conta BatCheckout e gerencie seus checkouts, produtos e pagamentos." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="../assets/css/design-system.css" />
+    <style>
+        .auth-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg);
+        }
+
+        .auth-left {
+            display: none !important;
+        }
+
+        .auth-right {
+            width: 100%;
+            max-width: 460px;
+            background: var(--bg-card);
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            border: 1px solid var(--border);
+            padding: 40px !important;
+            margin: auto;
+        }
+
+        .auth-left {
+            background: linear-gradient(135deg, #0d0010 0%, #1a0028 50%, #0a000f 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 60px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .auth-left::before {
+            content: '';
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(139, 0, 75, 0.3) 0%, transparent 70%);
+            top: -100px;
+            left: -100px;
+        }
+
+        .auth-left::after {
+            content: '';
+            position: absolute;
+            width: 400px;
+            height: 400px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 79, 163, 0.15) 0%, transparent 70%);
+            bottom: -80px;
+            right: -80px;
+        }
+
+        .auth-left-content {
+            position: relative;
+            z-index: 1;
+            max-width: 380px;
+        }
+
+        .auth-brand {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 48px;
+        }
+
+        .auth-brand-icon {
+            width: 52px;
+            height: 52px;
+            background: linear-gradient(135deg, #8B004B, #FF4FA3);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 0 30px rgba(255, 79, 163, 0.4);
+        }
+
+        .auth-brand-name {
+            font-size: 1.6rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #FF4FA3, #FFa0cc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .auth-left h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            color: #f0f0ff;
+            line-height: 1.2;
+            margin-bottom: 16px;
+        }
+
+        .auth-left h1 span {
+            background: linear-gradient(135deg, #FF4FA3, #FFa0cc);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .auth-left p {
+            color: rgba(240, 240, 255, 0.6);
+            font-size: 1rem;
+            line-height: 1.7;
+        }
+
+        .auth-features {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            margin-top: 40px;
+        }
+
+        .auth-feature {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .auth-feature-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 10px;
+            background: rgba(255, 79, 163, 0.12);
+            border: 1px solid rgba(255, 79, 163, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .auth-feature-icon svg {
+            width: 18px;
+            height: 18px;
+            color: #FF4FA3;
+        }
+
+        .auth-feature-text {
+            font-size: 0.875rem;
+            color: rgba(240, 240, 255, 0.7);
+            font-weight: 500;
+        }
+
+        .auth-right {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            background: var(--bg);
+        }
+
+        .auth-form-card {
+            width: 100%;
+            max-width: 420px;
+        }
+
+        .auth-form-card h2 {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .auth-form-card>p {
+            color: rgba(152, 152, 184, 0.8);
+            font-size: 0.875rem;
+            margin-bottom: 32px;
+        }
+
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .auth-divider {
+            position: relative;
+            text-align: center;
+            margin: 8px 0;
+        }
+
+        .auth-divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .auth-divider span {
+            position: relative;
+            padding: 0 12px;
+            background: var(--bg);
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        .auth-footer {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 0.875rem;
+            color: #666688;
+        }
+
+        .auth-footer a {
+            color: #FF4FA3;
+            font-weight: 600;
+        }
+
+        .auth-footer a:hover {
+            color: #FFa0cc;
+        }
+
+        @media (max-width: 768px) {
+            .auth-wrapper {
+                grid-template-columns: 1fr;
+            }
+
+            .auth-left {
+                display: none;
+            }
+
+            .auth-right {
+                padding: 24px 16px;
+            }
+        }
+    </style>
+    <link rel="icon" type="image/png" href="../assets/logo.png" />
+    <link rel="manifest" href="../manifest.json" />
+</head>
+
+<body>
+    <div class="auth-wrapper">
+        <div class="auth-left">
+            <div class="auth-left-content">
+                <div class="auth-brand">
+                    <a href="dashboard.html"><img src="../assets/logo.png" alt="BatCheckout Logo"
+                            style="height: 64px; object-fit: contain; transform: scale(1.4);" /></a>
+                </div>
+                <h1>Checkout inteligente para <span>vender mais</span></h1>
+                <p>A plataforma completa para criar checkouts de alta conversão, gerenciar pagamentos e escalar suas
+                    vendas digitais.</p>
+                <div class="auth-features">
+                    <div class="auth-feature">
+                        <div class="auth-feature-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                        </div>
+                        <div class="auth-feature-text">Checkout builder com drag-and-drop</div>
+                    </div>
+                    <div class="auth-feature">
+                        <div class="auth-feature-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2L2 7l10 5 10-5-10-5z" />
+                                <path d="M2 17l10 5 10-5" />
+                                <path d="M2 12l10 5 10-5" />
+                            </svg>
+                        </div>
+                        <div class="auth-feature-text">PIX + múltiplos gateways de pagamento</div>
+                    </div>
+                    <div class="auth-feature">
+                        <div class="auth-feature-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
+                                <polyline points="17 6 23 6 23 12" />
+                            </svg>
+                        </div>
+                        <div class="auth-feature-text">Dashboard com relatórios em tempo real</div>
+                    </div>
+                    <div class="auth-feature">
+                        <div class="auth-feature-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+                                <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+                            </svg>
+                        </div>
+                        <div class="auth-feature-text">Webhooks, pixels e UTM tracking</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="auth-right">
+            <div class="auth-form-card">
+                <div style="text-align: center; margin-bottom: 24px;">
+                    <a href="dashboard.html"><img src="../assets/logo.png" alt="BatCheckout Logo"
+                            style="height: 64px; object-fit: contain; transform: scale(1.4);" /></a>
+                </div>
+                <h2 style="text-align:center;">Bem-vindo de volta</h2>
+                <p style="text-align:center;">Entre na sua conta para acessar o painel</p>
+
+                <div id="alertBox" style="display:none;"></div>
+
+                <form class="auth-form" id="loginForm">
+                    <div class="form-group">
+                        <label class="form-label">Email <span class="required">*</span></label>
+                        <input type="email" id="email" class="form-input" placeholder="seu@email.com" required
+                            autocomplete="email" />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" style="display:flex;justify-content:space-between;">
+                            Senha <a href="forgot-password.html" style="font-size:0.78rem;">Esqueci a senha</a>
+                        </label>
+                        <div style="position:relative;">
+                            <input type="password" id="password" class="form-input" placeholder="••••••••" required
+                                autocomplete="current-password" style="padding-right:44px;" />
+                            <button type="button" id="togglePwd"
+                                style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:#666688;">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                    <circle cx="12" cy="12" r="3" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg w-full" id="submitBtn">
+                        Entrar na conta
+                    </button>
+                </form>
+
+                <div class="auth-footer">
+                    Não tem conta? <a href="register.html">Criar conta grátis</a>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+
+    <script src="../assets/js/bc.js"></script>
+    <script>
+        // Redirect if already logged in
+        if (BC.auth.isLoggedIn()) window.location.href = 'dashboard.html';
+
+        // Create demo user if not exists
+        const users = BC.storage.get('users', []);
+        if (!users.find(u => u.email === 'demo@batcheckout.com')) {
+            users.push({ id: BC.uuid(), name: 'Usuário Demo', email: 'demo@batcheckout.com', password: 'demo123', createdAt: new Date().toISOString() });
+            BC.storage.set('users', users);
+        }
+
+        const form = document.getElementById('loginForm');
+        const alertBox = document.getElementById('alertBox');
+        const submitBtn = document.getElementById('submitBtn');
+
+        document.getElementById('togglePwd').addEventListener('click', () => {
+            const pwd = document.getElementById('password');
+            pwd.type = pwd.type === 'password' ? 'text' : 'password';
+        });
+
+        form.addEventListener('submit', async e => {
+            e.preventDefault();
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            submitBtn.innerHTML = '<div class="loader" style="border-top-color:#fff;border-color:rgba(255,255,255,0.3)"></div> Entrando...';
+            submitBtn.disabled = true;
+            alertBox.style.display = 'none';
+            await new Promise(r => setTimeout(r, 600));
+            const result = BC.auth.login(email, password);
+            if (result.ok) {
+                window.location.href = 'dashboard.html';
+            } else {
+                alertBox.innerHTML = `<div class="alert alert-danger"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>${result.error}</div>`;
+                alertBox.style.display = 'block';
+                submitBtn.innerHTML = 'Entrar na conta';
+                submitBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+
+</html>

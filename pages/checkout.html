@@ -1,0 +1,313 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Finalizar Compra — Pagamento Seguro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/css/design-system.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
+  <!-- QR Code generation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <link rel="icon" type="image/png" href="../assets/logo.png" />
+  <link rel="manifest" href="../manifest.json" />
+</head>
+
+<body style="background:var(--bg); min-height:100vh;">
+  <script src="../assets/js/bc.js"></script>
+
+  <div id="app" class="checkout-public-wrapper">
+    <!-- Content injected via JS -->
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+
+  <script>
+    // App Logic & Simulation API
+    const urlParams = new URLSearchParams(window.location.search);
+    const slug = urlParams.get('s') || urlParams.get('c') || urlParams.get('id');
+
+    let checkout = null;
+    let product = null;
+    let ownerId = null;
+
+    if (slug) {
+      console.log(`[Servidor/API_Simulada] Buscando dados do checkout: slug/id="${slug}"`);
+      Object.keys(localStorage).forEach(key => {
+        if (key.startsWith('bat_checkouts_')) {
+          const list = JSON.parse(localStorage.getItem(key)) || [];
+          const found = list.find(c => c.slug === slug || c.id === slug);
+          if (found) {
+            checkout = found;
+            ownerId = key.replace('bat_checkouts_', '');
+          }
+        }
+      });
+    }
+
+    if (checkout && ownerId) {
+      const prodList = JSON.parse(localStorage.getItem(`bat_products_${ownerId}`)) || [];
+      product = prodList.find(p => p.id === checkout.productId);
+      if (!product) console.warn(`[Servidor/API_Simulada] Produto atrelado (ID:${checkout.productId}) nao foi encontrado na conta!`);
+    }
+
+    const app = document.getElementById('app');
+
+    // Validação de Existencia
+    if (!checkout) {
+      console.error(`[Servidor/API_Simulada] HTTP 404: O checkout [${slug || 'indefinido'}] solicitado nao existe ou foi removido.`);
+      app.innerHTML = `
+        <div class="empty-state" style="margin-top:100px; background:var(--bg); border:1px solid var(--border); padding:40px 24px; border-radius:12px; max-width:420px; box-shadow:0 10px 40px rgba(0,0,0,0.04); margin-left:auto; margin-right:auto;">
+          <div style="color:var(--danger); opacity:0.8">${BC.icon('x', 64)}</div>
+          <h2 style="color:var(--text-primary); margin-top:24px; font-size:1.4rem;">Página não encontrada</h2>
+          <p style="color:var(--text-secondary); margin-top:12px; line-height:1.5;">O checkout solicitado não existe ou pode ter sido removido pela loja.</p>
+          <div style="font-size:0.8rem; background:rgba(0,0,0,0.03); padding:12px; border-radius:6px; margin-top:16px; color:var(--text-muted); text-align:left;">
+            <strong>Diagnóstico de Sessão Local:</strong><br>
+            Como este SaaS roda uma demonstração via localStorage isolado em seu navegador, ao copiar este link para uma Janela Anônima (Incógnita) ou aba limpa, a persistência original é cortada e o link naturalmente falhará (pois o banco apagou da janela).
+          </div>
+          <button class="btn btn-primary mt-6 w-full" onclick="window.history.length > 1 ? window.history.back() : (window.location.href='../index.html')">Voltar de onde vim</button>
+        </div>
+      `;
+    } else if (!product) {
+      console.error(`[Servidor/API_Simulada] HTTP 404: Checkout encontrou registro valido, porem produto expirou ou inativo.`);
+      app.innerHTML = `
+        <div class="empty-state" style="margin-top:100px; background:var(--bg); border:1px solid var(--border); padding:40px 24px; border-radius:12px; max-width:420px; box-shadow:0 10px 40px rgba(0,0,0,0.04); margin-left:auto; margin-right:auto;">
+          <div style="color:var(--warning); opacity:0.8">${BC.icon('x', 64)}</div>
+          <h2 style="color:var(--text-primary); margin-top:24px; font-size:1.4rem;">Produto Expirado</h2>
+          <p style="color:var(--text-secondary); margin-top:12px; line-height:1.5;">Este checkout expirou ou o produto alvo ficou inativo. Por favor, monte seu carrinho novamente nas opções da página anterior.</p>
+          <button class="btn btn-primary mt-6 w-full" onclick="window.location.href='products.html'">Procurar outro carrinho</button>
+        </div>
+      `;
+    } else {
+      let isPaying = false;
+      let obSelected = false;
+
+      const render = () => {
+        let finalPrice = Number(product.price);
+        if (checkout.orderBump && obSelected) finalPrice += Number(checkout.obPrice);
+
+        const templateName = checkout.template || 'moderno';
+
+        app.innerHTML = `
+          <div class="checkout-public-container text-left template-${templateName}" style="max-width:480px; width:100%;">
+            
+            <div class="checkout-public-header">
+              <div style="font-size:0.8rem; font-weight:600; text-transform:uppercase; letter-spacing:1px; color:var(--text-muted); margin-bottom:8px;">PAGAMENTO 100% SEGURO</div>
+              <h1 style="font-size:1.5rem; font-weight:800; color:var(--text-primary); line-height:1.2;">Você está a um passo de garantir seu acesso.</h1>
+            </div>
+
+            <div class="checkout-public-card">
+              <div class="checkout-product-banner" style="background: linear-gradient(135deg, ${checkout.color}20, ${checkout.color}10);">
+                <div class="checkout-product-img" style="background:${checkout.color}30; border:1px solid ${checkout.color}50;">
+                  ${product.image ? `<img src="${product.image}" style="width:100%; height:100%; border-radius:12px; object-fit:cover;" />` : BC.icon('image', 32)}
+                </div>
+                <div>
+                  <div class="checkout-product-name">${product.name}</div>
+                  <div class="checkout-product-price" style="color:${checkout.color}">${BC.format.currency(finalPrice)}</div>
+                </div>
+              </div>
+
+              ${isPaying ? `
+                <div class="checkout-pix-section">
+                  <h3 style="font-size:1.1rem; color:var(--text-primary); margin-bottom:20px;">Escaneie o QR Code abaixo</h3>
+                  <div class="pix-qrcode" id="qrcode"></div>
+                  <div class="pix-timer" style="color:${checkout.color}">04:59</div>
+                  <div class="pix-status">
+                    <div class="pix-pulse"></div>
+                    Aguardando pagamento...
+                  </div>
+                  <div class="copy-field pl-3 pr-3 pb-3 mb-4 mt-2">
+                     <input type="text" id="pixCodeStr" value="00020101021126580014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-426655440000520400005303986540510.005802BR5913BatCheckout6008BRASILIA62070503***6304ABCD" readonly style="font-size:0.7rem;" />
+                     <button onclick="BC.copyToClipboard(document.getElementById('pixCodeStr').value)" style="color:${checkout.color}">Copiar PIX</button>
+                  </div>
+                </div>
+              ` : `
+                <form id="checkoutForm" class="checkout-form-section">
+                  <div class="checkout-form-title">Seus Dados</div>
+                  
+                  <div class="form-group mb-4">
+                    <label class="form-label" style="color:var(--text-secondary)">Nome completo <span class="required" style="color:${checkout.color}">*</span></label>
+                    <input type="text" id="custName" class="form-input" style="background:var(--bg-input); border-color:var(--border);" required placeholder="Digite seu nome real" />
+                  </div>
+                  
+                  <div class="form-group mb-4">
+                    <label class="form-label" style="color:var(--text-secondary)">Email <span class="required" style="color:${checkout.color}">*</span></label>
+                    <input type="email" id="custEmail" class="form-input" style="background:var(--bg-input); border-color:var(--border);" required placeholder="Acesso será enviado para este email" />
+                  </div>
+
+                  ${checkout.askPhone ? `
+                  <div class="form-group mb-4">
+                    <label class="form-label" style="color:var(--text-secondary)">Celular / WhatsApp <span class="required" style="color:${checkout.color}">*</span></label>
+                    <input type="tel" id="custPhone" class="form-input" style="background:var(--bg-input); border-color:var(--border);" required placeholder="(00) 00000-0000" />
+                  </div>
+                  ` : ''}
+
+                  ${checkout.askCpf ? `
+                  <div class="form-group mb-4">
+                    <label class="form-label" style="color:var(--text-secondary)">CPF <span class="required" style="color:${checkout.color}">*</span></label>
+                    <input type="text" id="custCpf" class="form-input" style="background:var(--bg-input); border-color:var(--border);" required placeholder="000.000.000-00" />
+                  </div>
+                  ` : ''}
+
+                  ${checkout.orderBump ? `
+                    <div class="order-bump-card ${obSelected ? 'selected' : ''}" id="obCard" style="${obSelected ? `border-color:${checkout.color}; background:${checkout.color}15;` : ''}">
+                      <div class="flex items-center gap-3">
+                        <input type="checkbox" id="obCheck" ${obSelected ? 'checked' : ''} style="width:20px;height:20px;accent-color:${checkout.color}" />
+                        <div>
+                          <div style="font-size:0.75rem; font-weight:700; color:${checkout.color}; margin-bottom:2px;">+ ADICIONAR AO PEDIDO</div>
+                          <div style="font-size:0.875rem; color:var(--text-primary); font-weight:600;">${checkout.obTitle}</div>
+                          <div style="font-size:0.75rem; color:var(--text-secondary); margin-top:2px;">Por apenas ${BC.format.currency(checkout.obPrice)}</div>
+                        </div>
+                      </div>
+                    </div>
+                  ` : ''}
+
+                  <button type="submit" class="btn btn-primary btn-lg w-full mt-2" id="payBtn" style="background:${checkout.color}; box-shadow:0 6px 20px ${checkout.color}40; letter-spacing:0.5px;">
+                    GARANTIR MEU ACESSO AGORA
+                  </button>
+                  <div class="text-center mt-4 mb-2">
+                    <div style="display:inline-flex; align-items:center; gap:8px; font-size:0.75rem; color:#666688;">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                      Ambiente 100% criptografado
+                    </div>
+                  </div>
+                </form>
+              `}
+            </div>
+          </div>
+        `;
+
+        if (!isPaying) {
+          // Masks & Events
+          const cpfInput = document.getElementById('custCpf');
+          if (cpfInput) {
+            cpfInput.addEventListener('input', e => { e.target.value = BC.format.cpf(e.target.value); });
+          }
+          const phoneInput = document.getElementById('custPhone');
+          if (phoneInput) {
+            phoneInput.addEventListener('input', e => { e.target.value = BC.format.phone(e.target.value); });
+          }
+
+          const obCard = document.getElementById('obCard');
+          if (obCard) {
+            obCard.addEventListener('click', (e) => {
+              if (e.target.tagName !== 'INPUT') {
+                obSelected = !obSelected;
+                render();
+              }
+            });
+            document.getElementById('obCheck').addEventListener('change', (e) => {
+              obSelected = e.target.checked;
+              render();
+            });
+          }
+
+          document.getElementById('checkoutForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (checkout.askCpf && !BC.validateCPF(document.getElementById('custCpf').value)) {
+              return BC.toast.error('Erro', 'CPF inválido.');
+            }
+
+            // Store customer info
+            window._customerInfo = {
+              name: document.getElementById('custName').value,
+              email: document.getElementById('custEmail').value,
+              amount: finalPrice
+            };
+
+            const btn = document.getElementById('payBtn');
+            btn.innerHTML = '<div class="loader" style="border-top-color:#fff;border-color:rgba(255,255,255,0.3)"></div> Gerando chave PIX...';
+            btn.disabled = true;
+
+            setTimeout(() => {
+              isPaying = true;
+              render();
+
+              // Generate QR immediately
+              new QRCode(document.getElementById("qrcode"), {
+                text: "00020101021126580014br.gov.bcb.pix0136123e4567-e89b-12d3-a456-426655440000520400005303986540510.005802BR5913BatCheckout6008BRASILIA62070503***6304ABCD",
+                width: 200, height: 200, colorDark: "#000", colorLight: "#ffffff", correctLevel: QRCode.CorrectLevel.H
+              });
+
+              console.log('[Servidor Node.js - WebPush API] Disparando Action: PIX GERADO para os inscritos');
+              const channel = new BroadcastChannel('bat_push_sim');
+              channel.postMessage({
+                title: 'Pix Gerado!',
+                options: {
+                  body: `Aguardando a confirmação do pagamento de ${BC.format.currency(finalPrice)}.`,
+                  icon: '../assets/logo.png',
+                  silent: true,
+                  data: { url: '/pages/dashboard.html' }
+                }
+              });
+
+              // Simulate payment completion polling
+              simulatePayment(ownerId, checkout, product, finalPrice, window._customerInfo);
+            }, 1500);
+          });
+        }
+      };
+
+      const simulatePayment = (owner, chk, prod, amt, cust) => {
+        // We push a 'pending' transaction to owner
+        const txKey = `bat_transactions_${owner}`;
+        const tList = JSON.parse(localStorage.getItem(txKey)) || [];
+        const txId = BC.uuid();
+        tList.unshift({
+          id: txId,
+          checkoutId: chk.id,
+          productId: prod.id,
+          productName: prod.name,
+          customerName: cust.name,
+          customerEmail: cust.email,
+          amount: amt,
+          status: 'pending',
+          method: 'pix',
+          createdAt: new Date().toISOString()
+        });
+        localStorage.setItem(txKey, JSON.stringify(tList));
+
+        // After 6 seconds, approve it
+        setTimeout(() => {
+          const l2 = JSON.parse(localStorage.getItem(txKey)) || [];
+          const idx = l2.findIndex(x => x.id === txId);
+          if (idx >= 0) {
+            l2[idx].status = 'approved';
+            l2[idx].updatedAt = new Date().toISOString();
+            localStorage.setItem(txKey, JSON.stringify(l2));
+          }
+
+          app.innerHTML = `
+            <div class="checkout-public-container text-center" style="max-width:480px; width:100%; margin-top:60px;">
+              <div style="width:80px;height:80px;border-radius:50%;background:#FF4FA3;color:white;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;">
+                ${BC.icon('check', 40)}
+              </div>
+              <h1 style="color:var(--text-primary); font-size:1.8rem; font-weight:800; margin-bottom:12px;">Compra Aprovada!</h1>
+              <p style="color:var(--text-secondary);">Sua compra do <b>${prod.name}</b> foi confirmada com sucesso.</p>
+              <p style="color:var(--text-secondary); margin-top:8px;">Verifique seu email (${cust.email}) para acessar seu produto.</p>
+            </div>
+          `;
+          BC.toast.success('PIX Confirmado', 'Pagamento recebido instantaneamente na plataforma.');
+
+          console.log('[Servidor Node.js - WebPush API] Disparando Action: PAGO para os inscritos');
+          const channel = new BroadcastChannel('bat_push_sim');
+          channel.postMessage({
+            title: 'Venda Paid!',
+            options: {
+              body: `Venda de ${BC.format.currency(amt)} confirmada e depositada pelo cliente ${cust.name}.`,
+              icon: '../assets/logo.png',
+              silent: true,
+              data: { url: '/pages/dashboard.html' }
+            }
+          });
+        }, 6000);
+      };
+
+      render();
+    }
+  </script>
+</body>
+
+</html>

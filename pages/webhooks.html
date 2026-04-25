@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Notificações (Webhooks) — BatCheckout</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/css/design-system.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
+</head>
+
+<body>
+  <script src="../assets/js/bc.js"></script>
+  <script src="../assets/js/layout.js"></script>
+
+  <script>
+    const content = BCLayout.init('webhooks', 'Webhooks', 'Avise outros sistemas quando uma venda acontecer');
+
+    if (content) {
+      const render = () => {
+        const wh = BC.webhooks.getAll();
+
+        content.innerHTML = `
+          <div class="page-header">
+            <div class="page-header-left">
+              <h2>Configurar Webhooks</h2>
+              <p>Envie POST requests para automações, áreas de membros, etc.</p>
+            </div>
+            <button class="btn btn-primary" onclick="openWebhookModal()">
+              ${BC.icon('plus')} Criar Webhook
+            </button>
+          </div>
+
+          ${wh.length === 0 ? `
+            <div class="empty-state">
+              ${BC.icon('webhooks', 48)}
+              <h3>Nenhum Webhook configurado</h3>
+              <p>Integre o BatCheckout com plataformas externas (Make, Zapier, N8N, ActiveCampaign).</p>
+              <button class="btn btn-primary mt-4" onclick="openWebhookModal()">
+                Configurar meu primeiro webhook
+              </button>
+            </div>
+          ` : `
+            <div class="card">
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>URL do Endpoint</th>
+                      <th>Eventos</th>
+                      <th>Status</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${wh.map(w => `
+                      <tr>
+                        <td><div style="font-family:monospace; font-size:0.8rem; background:var(--bg-input); padding:4px 8px; border-radius:4px; display:inline-block;">${w.url}</div></td>
+                        <td>
+                           <div style="display:flex; gap:4px; flex-wrap:wrap;">
+                             ${w.events.map(e => `<span class="badge ${e === 'approved' ? 'badge-success' : e === 'refused' ? 'badge-danger' : 'badge-warning'}">${e}</span>`).join('')}
+                           </div>
+                        </td>
+                        <td>${w.active ? '<span class="badge badge-success">Ativo</span>' : '<span class="badge badge-danger">Inativo</span>'}</td>
+                        <td>
+                          <div style="display:flex; gap:6px; align-items:center;">
+                            <button class="btn btn-secondary btn-sm" id="btn-test-${w.id}" onclick="testWebhook('${w.id}')" ${!w.active ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : 'style="cursor:pointer;"'} title="Disparar Teste">
+                              ${BC.icon('zap', 14)}
+                            </button>
+                            <button class="btn btn-secondary btn-sm" id="btn-edit-${w.id}" onclick="editWebhook('${w.id}')">${BC.icon('edit', 14)} Editar</button>
+                            <button class="btn btn-danger btn-sm" id="btn-del-${w.id}" onclick="deleteWebhook('${w.id}')">${BC.icon('trash', 14)}</button>
+                          </div>
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          `}
+
+          <!-- Webhook Modal -->
+          <div class="modal-overlay" id="whModal">
+            <div class="modal">
+              <div class="modal-header">
+                <h3 id="whTitle">Novo Webhook</h3>
+                <button class="modal-close" onclick="BC.modal.close('whModal')">${BC.icon('x')}</button>
+              </div>
+              <form id="whForm">
+                <input type="hidden" id="whId" />
+                <div class="modal-body">
+                  <div class="form-group mb-4">
+                    <label class="form-label">URL (Endpoint) <span class="required">*</span></label>
+                    <input type="url" id="whUrl" class="form-input" required placeholder="https://api.meusistema.com.br/hooks" />
+                  </div>
+                  
+                  <label class="form-label mb-2">Disparar nestes eventos <span class="required">*</span></label>
+                  <div class="form-group" style="display:flex; flex-direction:column; gap:8px;">
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                      <input type="checkbox" name="whEvents" value="approved" style="accent-color:var(--primary); width:18px; height:18px;" checked />
+                      <span>Transação Aprovada (PIX pago)</span>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                      <input type="checkbox" name="whEvents" value="pending" style="accent-color:var(--primary); width:18px; height:18px;" checked />
+                      <span>Transação Pendente (PIX gerado)</span>
+                    </label>
+                    <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+                      <input type="checkbox" name="whEvents" value="refused" style="accent-color:var(--primary); width:18px; height:18px;" />
+                      <span>Transação Recusada (Reembolso/Cancelado)</span>
+                    </label>
+                  </div>
+
+                  <div class="form-group mt-4 flex items-center justify-between">
+                    <label class="form-label mb-0" style="color:var(--text-primary)">Webhook Ativo</label>
+                    <label class="toggle-label" style="margin:0"><input type="checkbox" id="whActive" class="toggle-input" checked><div class="toggle-track"></div></label>
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-ghost" onclick="BC.modal.close('whModal')">Cancelar</button>
+                  <button type="submit" class="btn btn-primary">Salvar Endpoint</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        `;
+
+        document.getElementById('whForm')?.addEventListener('submit', (e) => {
+          e.preventDefault();
+
+          const evts = Array.from(document.querySelectorAll('input[name="whEvents"]:checked')).map(el => el.value);
+          if (evts.length === 0) return BC.toast.error('Erro', 'Selecione pelo menos um evento.');
+
+          BC.webhooks.save({
+            id: document.getElementById('whId').value || undefined,
+            url: document.getElementById('whUrl').value,
+            events: evts,
+            active: document.getElementById('whActive').checked
+          });
+
+          BC.toast.success('Salvo', 'Configuração de Webhook salva com sucesso.');
+          BC.modal.close('whModal');
+          render();
+        });
+      };
+
+      render();
+
+      window.openWebhookModal = () => {
+        document.getElementById('whTitle').textContent = 'Novo Webhook';
+        document.getElementById('whForm').reset();
+        document.getElementById('whId').value = '';
+        document.getElementById('whActive').checked = true;
+        BC.modal.open('whModal');
+      };
+
+      window.editWebhook = (id) => {
+        const w = BC.webhooks.get(id);
+        if (w) {
+          document.getElementById('whTitle').textContent = 'Editar Webhook';
+          document.getElementById('whId').value = w.id;
+          document.getElementById('whUrl').value = w.url;
+          document.getElementById('whActive').checked = !!w.active;
+
+          document.querySelectorAll('input[name="whEvents"]').forEach(el => {
+            el.checked = w.events.includes(el.value);
+          });
+          BC.modal.open('whModal');
+        }
+      };
+
+      window.deleteWebhook = (id) => {
+        if (confirm('Tem certeza? Suas automações poderão parar de funcionar.')) {
+          BC.webhooks.delete(id);
+          BC.toast.success('Excluído', 'Webhook removido.');
+          render();
+        }
+      };
+
+      window.testWebhook = (id) => {
+        const w = BC.webhooks.get(id);
+        if (!w || !w.active) return;
+
+        const btnTest = document.getElementById('btn-test-' + id);
+        const btnEdit = document.getElementById('btn-edit-' + id);
+        const btnDel = document.getElementById('btn-del-' + id);
+
+        // Block interfaces
+        const originalContent = BC.icon('zap', 14);
+        btnTest.innerHTML = '<div class="loader" style="width:14px;height:14px;border-width:2px;border-top-color:var(--text-primary)"></div>';
+
+        [btnTest, btnEdit, btnDel].forEach(btn => { if (btn) btn.disabled = true; });
+
+        const isRealHost = w.url.includes('https://') && w.url.includes('.');
+        const latency = Math.floor(Math.random() * 600) + 150; // Random ms simulation
+
+        setTimeout(() => {
+          if (isRealHost) {
+            btnTest.innerHTML = '<span style="color:#FF4FA3">' + BC.icon('check', 14) + '</span>';
+            BC.toast.success('Teste Enviado', 'O disparo comunicou com sucesso (200 OK em ' + latency + 'ms).');
+          } else {
+            btnTest.innerHTML = '<span style="color:#8B004B">' + BC.icon('x', 14) + '</span>';
+            BC.toast.error('Erro de Endpoint', 'Falha no teste: Timeout invalido ou Host inexistente apos 5000ms.');
+          }
+
+          // Recover Visual State Sequence
+          setTimeout(() => {
+            btnTest.innerHTML = originalContent;
+            [btnTest, btnEdit, btnDel].forEach(btn => { if (btn) btn.disabled = false; });
+          }, 3000);
+
+        }, latency);
+      };
+
+      BCLayout.sidebar.init();
+    }
+  </script>
+</body>
+
+</html>

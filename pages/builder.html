@@ -1,0 +1,236 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Construtor de Checkout — BatCheckout</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/css/design-system.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
+</head>
+
+<body>
+  <script src="../assets/js/bc.js"></script>
+  <script src="../assets/js/layout.js"></script>
+
+  <script>
+    const content = BCLayout.init('checkouts', 'Construtor', 'Personalize sua página de pagamento');
+
+    if (content) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const checkoutId = urlParams.get('id');
+
+      let config = {
+        template: 'moderno',
+        name: 'Meu Novo Checkout',
+        slug: 'meu-produto-' + Math.floor(Math.random() * 1000),
+        productId: '',
+        color: '#8B004B',
+        askPhone: true,
+        askCpf: true,
+        orderBump: false,
+        obTitle: '',
+        obPrice: '',
+      };
+
+      if (checkoutId) {
+        const existing = BC.checkouts.get(checkoutId);
+        if (existing) config = { ...config, ...existing };
+      }
+
+      const products = BC.products.getAll();
+
+      // Render App
+      content.innerHTML = `
+        <div style="margin:-28px; height:calc(100vh - 64px); display:flex; flex-direction:column;">
+          <div style="padding:12px 24px; background:var(--bg-card); border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+            <div style="font-weight:600; font-size:0.9rem;">${BC.icon('checkout', 16)} Editor de Checkout</div>
+            <div style="display:flex; gap:10px;">
+              <a href="checkouts.html" class="btn btn-ghost btn-sm">Cancelar</a>
+              <button class="btn btn-primary btn-sm" id="saveBtn">Salvar Alterações</button>
+            </div>
+          </div>
+
+          <div class="builder-wrapper">
+            <!-- Left Sidebar: Settings -->
+            <div class="builder-sidebar-left">
+              <div class="props-panel-title">Configurações Gerais</div>
+              
+              <div class="form-group mb-4">
+                <label class="form-label">Template Visual</label>
+                <select id="cTemplate" class="form-select">
+                  <option value="moderno" ${config.template === 'moderno' ? 'selected' : ''}>Moderno (Padrão)</option>
+                  <option value="minimalista" ${config.template === 'minimalista' ? 'selected' : ''}>Minimalista (Básico)</option>
+                  <option value="classico" ${config.template === 'classico' ? 'selected' : ''}>Clássico (Tradicional)</option>
+                </select>
+              </div>
+
+              <div class="form-group mb-4">
+                <label class="form-label">Nome Interno</label>
+                <input type="text" id="cName" class="form-input" value="${config.name}" />
+              </div>
+              
+              <div class="form-group mb-4">
+                <label class="form-label">Link (Slug)</label>
+                <input type="text" id="cSlug" class="form-input" value="${config.slug}" />
+              </div>
+
+              <div class="form-group mb-6">
+                <label class="form-label">Produto Vinculado</label>
+                <select id="cProduct" class="form-select">
+                  <option value="">Selecione o produto</option>
+                  ${products.map(p => `<option value="${p.id}" ${config.productId === p.id ? 'selected' : ''}>${p.name} (${BC.format.currency(p.price)})</option>`).join('')}
+                </select>
+                ${products.length === 0 ? '<div class="form-error mt-1">Crie um produto primeiro!</div>' : ''}
+              </div>
+
+              <div class="props-panel-title">Aparência</div>
+              <div class="form-group mb-6">
+                <label class="form-label">Cor Principal</label>
+                <div class="flex gap-2 mt-1">
+                  <input type="color" id="cColor" value="${config.color}" style="width:40px; height:40px; padding:0; border:1px solid var(--border); border-radius:4px; cursor:pointer;" />
+                  <input type="text" class="form-input flex-1" id="cColorText" value="${config.color}" />
+                </div>
+              </div>
+
+              <div class="props-panel-title">Campos do Cliente</div>
+              <div class="flex-col gap-3 mb-6">
+                <div class="flex items-center justify-between">
+                  <label class="form-label mb-0" style="color:var(--text-primary)">Solicitar Telefone / WhatsApp</label>
+                  <label class="toggle-label" style="margin:0"><input type="checkbox" id="cPhone" class="toggle-input" ${config.askPhone ? 'checked' : ''}><div class="toggle-track"></div></label>
+                </div>
+                <div class="flex items-center justify-between">
+                  <label class="form-label mb-0" style="color:var(--text-primary)">Solicitar CPF / CNPJ</label>
+                  <label class="toggle-label" style="margin:0"><input type="checkbox" id="cCpf" class="toggle-input" ${config.askCpf ? 'checked' : ''}><div class="toggle-track"></div></label>
+                </div>
+              </div>
+              
+            </div>
+
+            <!-- Center Canvas -->
+            <div class="builder-canvas">
+              <div class="builder-phone" id="phonePreview">
+                <!-- Preview is drawn here -->
+              </div>
+            </div>
+
+            <!-- Right Sidebar: Order Bump & Extras -->
+            <div class="builder-sidebar-right">
+              <div class="props-panel-title">Order Bump (Oferta Extra)</div>
+              <div class="flex items-center justify-between mb-4">
+                <label class="form-label mb-0" style="color:var(--text-primary)">Ativar Order Bump</label>
+                <label class="toggle-label" style="margin:0"><input type="checkbox" id="cOb" class="toggle-input" ${config.orderBump ? 'checked' : ''}><div class="toggle-track"></div></label>
+              </div>
+
+              <div id="obConfig" style="${config.orderBump ? 'display:block' : 'display:none'}">
+                <div class="form-group mb-3">
+                  <label class="form-label">Título da Oferta</label>
+                  <input type="text" id="obTitle" class="form-input" value="${config.obTitle}" placeholder="Leve também o acesso VIP por apenas..." />
+                </div>
+                <div class="form-group mb-3">
+                  <label class="form-label">Preço Adicional (R$)</label>
+                  <input type="number" id="obPrice" class="form-input" min="1" step="0.01" value="${config.obPrice}" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      // Update Preview logic
+      const updatePreview = () => {
+        const prodId = document.getElementById('cProduct').value;
+        const color = document.getElementById('cColor').value;
+        const prod = products.find(p => p.id === prodId) || { name: 'Selecione um Produto', price: 0 };
+        const askPhone = document.getElementById('cPhone').checked;
+        const askCpf = document.getElementById('cCpf').checked;
+        const hasOb = document.getElementById('cOb').checked;
+        const obTitle = document.getElementById('obTitle').value || 'Leve também a oferta exclusiva';
+        const obPrice = Number(document.getElementById('obPrice').value || 0);
+
+        const template = document.getElementById('cTemplate').value;
+
+        document.getElementById('phonePreview').innerHTML = `
+          <div class="checkout-public-container template-${template}" style="transform: scale(0.65); transform-origin: top center; width: 153%; padding:0; min-height:0; background:transparent;">
+            <div class="checkout-public-card" style="margin:0 auto; pointer-events:none;">
+              <div class="checkout-product-banner" style="background: ${color}; padding:24px;"></div>
+              
+              <div style="text-align:center; margin-top:-36px; padding-bottom:16px;">
+                <div class="checkout-product-img" style="width:72px;height:72px;background:#eee;border-radius:12px;margin:0 auto;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.1)">
+                  ${BC.icon('image')}
+                </div>
+              </div>
+
+              <div style="padding: 0 24px 24px;">
+                <h3 style="text-align:center; margin-top:0; font-size:1.1rem;">${prod.name}</h3>
+                <div style="text-align:center; font-size:1.4rem; font-weight:800; color:${color}">${BC.format.currency(prod.price)}</div>
+                
+                <div class="checkout-form-title" style="margin-top:24px;">Dados Pessoais</div>
+                <div class="form-group"><input type="text" class="form-input" placeholder="Nome completo" readonly></div>
+                <div class="form-group"><input type="email" class="form-input" placeholder="Email" readonly></div>
+                ${askPhone ? `<div class="form-group"><input type="text" class="form-input" placeholder="Telefone" readonly></div>` : ''}
+                ${askCpf ? `<div class="form-group"><input type="text" class="form-input" placeholder="CPF/CNPJ" readonly></div>` : ''}
+                
+                ${hasOb ? `
+                  <div class="order-bump-card" style="margin:24px 0 0; border: 2px solid ${color}; border-radius:12px; background:rgba(0,0,0,0.02); padding:16px;">
+                    <div style="color:${color}; font-weight:800; font-size:0.8rem;">+ OFERTA ESPECIAL</div>
+                    <div style="font-size:0.9rem; font-weight:600; margin-top:4px;">${obTitle}</div>
+                    <div style="font-size:1.1rem; font-weight:800; color:${color}; margin-top:2px;">${BC.format.currency(obPrice)}</div>
+                  </div>
+                ` : ''}
+                
+                <button class="btn btn-primary w-full mt-4" style="background:${color};">Pagar com PIX</button>
+              </div>
+            </div>
+          </div>
+        `;
+      };
+
+      // Listeners
+      const inputs = ['cTemplate', 'cProduct', 'cColor', 'cColorText', 'cPhone', 'cCpf', 'cOb', 'obTitle', 'obPrice'];
+      inputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.addEventListener('input', (e) => {
+            if (id === 'cColor') document.getElementById('cColorText').value = e.target.value;
+            if (id === 'cColorText') document.getElementById('cColor').value = e.target.value;
+            if (id === 'cOb') document.getElementById('obConfig').style.display = e.target.checked ? 'block' : 'none';
+            updatePreview();
+          });
+        }
+      });
+
+      // Init preview
+      updatePreview();
+
+      // Save
+      document.getElementById('saveBtn').addEventListener('click', () => {
+        const prodId = document.getElementById('cProduct').value;
+        if (!prodId) return BC.toast.error('Atenção', 'Você deve selecionar um produto.');
+
+        BC.checkouts.save({
+          id: checkoutId || undefined,
+          template: document.getElementById('cTemplate').value,
+          name: document.getElementById('cName').value,
+          slug: document.getElementById('cSlug').value,
+          productId: prodId,
+          color: document.getElementById('cColor').value,
+          askPhone: document.getElementById('cPhone').checked,
+          askCpf: document.getElementById('cCpf').checked,
+          orderBump: document.getElementById('cOb').checked,
+          obTitle: document.getElementById('obTitle').value,
+          obPrice: document.getElementById('obPrice').value,
+        });
+
+        BC.toast.success('Salvo!', 'Configurações do checkout salvas.');
+        setTimeout(() => window.location.href = 'checkouts.html', 1000);
+      });
+
+      BCLayout.sidebar.init();
+    }
+  </script>
+</body>
+
+</html>

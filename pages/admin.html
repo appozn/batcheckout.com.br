@@ -1,0 +1,229 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Panel — BatCheckout</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/css/design-system.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
+  <link rel="icon" type="image/png" href="../assets/logo.png" />
+  <link rel="manifest" href="../manifest.json" />
+</head>
+
+<body>
+  <script src="../assets/js/bc.js"></script>
+  <script src="../assets/js/layout.js"></script>
+
+  <script>
+    window.deleteUser = (id) => {
+      const u = BC.users.get(id);
+      if (!u) return;
+      if (confirm(`ATENÇÃO: Deseja realmente EXCLUIR PERMANENTEMENTE a conta de ${u.name}? Todos os produtos, checkouts e transações vinculados a este usuário serão apagados do sistema.`)) {
+        BC.users.delete(id);
+        BC.toast.success('Usuário Excluído', `A conta de ${u.name} e todos os seus dados foram removidos.`);
+        window.location.reload();
+      }
+    };
+
+    if (!BC.auth.requireAdmin()) { /* redirect handled by requireAdmin */ }
+
+    const content = BCLayout.init('admin', 'Administração Global', 'Visão geral da plataforma BatCheckout');
+
+    if (content) {
+      // Aggregate data from all users
+      const keys = Object.keys(localStorage);
+      const userKeys = keys.filter(k => k.startsWith('bat_transactions_'));
+      let allTxs = [];
+      let revenueByUser = {};
+
+      const allUsers = BC.storage.get('users', []);
+      allUsers.forEach(u => {
+        revenueByUser[u.id] = { user: u, total: 0, sales: 0 };
+      });
+
+      userKeys.forEach(key => {
+        try {
+          const uid = key.replace('bat_transactions_', '');
+          if (uid === 'bat.adm@adm.com') return; // Filter Admin metrics
+          const t = JSON.parse(localStorage.getItem(key)) || [];
+          allTxs = allTxs.concat(t.map(tx => ({ ...tx, ownerId: uid })));
+
+          const approved = t.filter(x => x.status === 'approved');
+          const sum = approved.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+
+          if (revenueByUser[uid]) {
+            revenueByUser[uid].total = sum;
+            revenueByUser[uid].sales = approved.length;
+          }
+        } catch (e) { }
+      });
+
+      allTxs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+      const globalApproved = allTxs.filter(t => t.status === 'approved');
+      const globalRevenue = globalApproved.reduce((acc, t) => acc + Number(t.amount || 0), 0);
+
+      content.innerHTML = `
+        <div class="admin-banner">
+          ${BC.icon('admin', 32)}
+          <div>
+            <div class="admin-banner-title">Modo Administrador Ativo</div>
+            <div class="admin-banner-sub">Você tem acesso total aos dados analíticos da plataforma. O isolamento de dados foi desativado temporariamente.</div>
+          </div>
+        </div>
+
+        <div class="grid grid-4 mb-6">
+          <div class="stat-card" style="border-color:rgba(255,79,163,0.3)">
+            <div class="stat-card-header">
+              <div class="stat-card-label">Volume Total (TPV)</div>
+              <div class="stat-card-icon" style="background:rgba(139,0,75,0.12); color:var(--secondary)">
+                ${BC.icon('trending')}
+              </div>
+            </div>
+            <div class="stat-card-value">${BC.format.currency(globalRevenue)}</div>
+            <div class="stat-card-change">
+              <span style="color:var(--text-muted)">Global</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <div class="stat-card-label">Usuários Cadastrados</div>
+              <div class="stat-card-icon" style="background:var(--bg-input); color:var(--info)">
+                ${BC.icon('users')}
+              </div>
+            </div>
+            <div class="stat-card-value">${allUsers.length}</div>
+            <div class="stat-card-change">
+              <span style="color:var(--text-muted)">Contas ativas</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <div class="stat-card-label">Total Transações</div>
+              <div class="stat-card-icon" style="background:var(--bg-input); color:var(--success)">
+                ${BC.icon('transactions')}
+              </div>
+            </div>
+            <div class="stat-card-value">${allTxs.length}</div>
+            <div class="stat-card-change">
+              <span style="color:var(--text-muted)">Processadas no sistema</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <div class="stat-card-label">Taxa Média Conversão</div>
+              <div class="stat-card-icon" style="background:var(--bg-input); color:var(--danger)">
+                ${BC.icon('barChart')}
+              </div>
+            </div>
+            <div class="stat-card-value">${allTxs.length > 0 ? ((globalApproved.length / allTxs.length) * 100).toFixed(1) : 0}%</div>
+            <div class="stat-card-change">
+              <span style="color:var(--text-muted)">Global da plataforma</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-2">
+          <!-- Users Table -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Usuários & Lojistas</div>
+                <div class="card-subtitle">Faturamento individual por conta</div>
+              </div>
+            </div>
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Usuário</th>
+                    <th>Vendas Aprov</th>
+                    <th>Faturamento Total</th>
+                    <th>Criado Em</th>
+                    <th class="text-right">Ação</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${Object.values(revenueByUser).sort((a, b) => b.total - a.total).map(item => `
+                    <tr>
+                      <td>
+                        <strong>${item.user.name}</strong><br>
+                        <small style="color:var(--text-muted)">${item.user.email}</small>
+                      </td>
+                      <td>${item.sales}</td>
+                      <td style="color:var(--secondary); font-weight:700;">${BC.format.currency(item.total)}</td>
+                      <td>${BC.format.shortDate(item.user.createdAt)}</td>
+                      <td class="text-right">
+                        ${item.user.email !== BC.auth.ADMIN_EMAIL ? `
+                          <button class="btn btn-danger btn-sm" onclick="deleteUser('${item.user.id}')">
+                            ${BC.icon('trash', 14)} Excluir
+                          </button>
+                        ` : '<small style="color:var(--text-muted)">Super Admin</small>'}
+                      </td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- All Transactions Table -->
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Transações em Tempo Real</div>
+                <div class="card-subtitle">Monitoramento global</div>
+              </div>
+            </div>
+            ${allTxs.length === 0 ? `
+              <div class="empty-state">
+                <p>Nenhuma transação registrada na plataforma ainda.</p>
+              </div>
+            ` : `
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Vendedor</th>
+                    <th>Produto / Cliente</th>
+                    <th>Valor</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${allTxs.slice(0, 8).map(t => {
+        const seller = allUsers.find(u => u.id === t.ownerId);
+        return `
+                    <tr>
+                      <td><small style="color:var(--text-muted)">${seller ? seller.name : 'Desc.'}</small></td>
+                      <td>
+                        <strong>${t.productName}</strong><br>
+                        <small style="color:var(--text-muted)">${t.customerName}</small>
+                      </td>
+                      <td><strong>${BC.format.currency(t.amount)}</strong></td>
+                      <td>
+                        ${t.status === 'approved' ? '<span class="badge badge-success">Aprovado</span>' : ''}
+                        ${t.status === 'pending' ? '<span class="badge badge-warning">Pendente</span>' : ''}
+                        ${t.status === 'refused' ? '<span class="badge badge-danger">Recusado</span>' : ''}
+                      </td>
+                    </tr>
+                  `}).join('')}
+                </tbody>
+              </table>
+            </div>
+            `}
+          </div>
+        </div>
+      `;
+      BCLayout.sidebar.init();
+    }
+  </script>
+</body>
+
+</html>

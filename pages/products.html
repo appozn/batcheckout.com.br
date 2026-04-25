@@ -1,0 +1,170 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Produtos — BatCheckout</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="../assets/css/design-system.css" />
+    <link rel="stylesheet" href="../assets/css/components.css" />
+</head>
+
+<body>
+    <script src="../assets/js/bc.js"></script>
+    <script src="../assets/js/layout.js"></script>
+
+    <script>
+        const content = BCLayout.init('products', 'Meus Produtos', 'Gerencie produtos digitais e físicos');
+
+        if (content) {
+            const render = () => {
+                const prod = BC.products.getAll();
+
+                content.innerHTML = `
+          <div class="page-header">
+            <div class="page-header-left">
+              <h2>Catálogo de Produtos</h2>
+              <p>Cadastre o que você vai vender no checkout</p>
+            </div>
+            <button class="btn btn-primary" onclick="openProductModal()">
+              ${BC.icon('plus')} Criar Produto
+            </button>
+          </div>
+
+          ${prod.length === 0 ? `
+            <div class="empty-state">
+              ${BC.icon('card', 48)}
+              <h3>Nenhum produto cadastrado</h3>
+              <p>Você precisa de pelo menos um produto para poder criar um link de checkout.</p>
+              <button class="btn btn-primary mt-4" onclick="openProductModal()">
+                Cadastrar o primeiro produto
+              </button>
+            </div>
+          ` : `
+            <div class="grid grid-3" id="productsGrid">
+              ${prod.map(p => `
+                <div class="product-card">
+                  <div class="product-card-img">
+                    ${p.image ? `<img src="${p.image}" alt="${p.name}" />` : BC.icon('image', 32)}
+                  </div>
+                  <div class="product-card-body">
+                    <div class="badge ${p.type === 'digital' ? 'badge-info' : 'badge-warning'} mb-2">
+                       ${p.type === 'digital' ? 'Digital' : 'Físico'}
+                    </div>
+                    <div class="product-card-name">${p.name}</div>
+                    <div class="product-card-price">${BC.format.currency(p.price)}</div>
+                    <div class="product-card-meta">Criado em ${BC.format.shortDate(p.createdAt)}</div>
+                  </div>
+                  <div class="product-card-footer">
+                    <button class="btn btn-secondary btn-sm flex-1" onclick="editProduct('${p.id}')">${BC.icon('edit', 14)} Editar</button>
+                    <button class="btn btn-danger btn-sm" onclick="deleteProduct('${p.id}')">${BC.icon('trash', 14)}</button>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          `}
+
+          <!-- Product Modal -->
+          <div class="modal-overlay" id="productModal">
+            <div class="modal">
+              <div class="modal-header">
+                <h3 id="modalTitle">Novo Produto</h3>
+                <button class="modal-close" onclick="BC.modal.close('productModal')">${BC.icon('x')}</button>
+              </div>
+              <form id="productForm">
+                <input type="hidden" id="prodId" />
+                <div class="modal-body">
+                  <div class="form-group">
+                    <label class="form-label">Nome do Produto <span class="required">*</span></label>
+                    <input type="text" id="prodName" class="form-input" required placeholder="Ex: Curso de Marketing" />
+                  </div>
+                  <div class="form-row">
+                    <div class="form-group">
+                      <label class="form-label">Preço (R$) <span class="required">*</span></label>
+                      <input type="number" id="prodPrice" class="form-input" required min="1" step="0.01" />
+                    </div>
+                    <div class="form-group">
+                      <label class="form-label">Tipo</label>
+                      <select id="prodType" class="form-select">
+                        <option value="digital">Produto Digital</option>
+                        <option value="fisico">Produto Físico</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Descrição (Opcional)</label>
+                    <textarea id="prodDesc" class="form-textarea" placeholder="Breve descrição do que é entregue"></textarea>
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">URL da Imagem (Opcional, ou pegue do Canva)</label>
+                    <input type="url" id="prodImage" class="form-input" placeholder="https://..." />
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-ghost" onclick="BC.modal.close('productModal')">Cancelar</button>
+                  <button type="submit" class="btn btn-primary">Salvar Produto</button>
+                </div>
+              </form>
+            </div>
+          </div>
+        `;
+
+                // Form Submit
+                document.getElementById('productForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    const pId = document.getElementById('prodId').value;
+                    BC.products.save({
+                        id: pId || undefined,
+                        name: document.getElementById('prodName').value,
+                        price: document.getElementById('prodPrice').value,
+                        type: document.getElementById('prodType').value,
+                        description: document.getElementById('prodDesc').value,
+                        image: document.getElementById('prodImage').value
+                    });
+                    BC.toast.success('Sucesso', 'Produto salvo com sucesso!');
+                    BC.modal.close('productModal');
+                    render();
+                });
+
+            };
+
+            render();
+
+            window.openProductModal = () => {
+                document.getElementById('modalTitle').textContent = 'Novo Produto';
+                document.getElementById('productForm').reset();
+                document.getElementById('prodId').value = '';
+                BC.modal.open('productModal');
+            };
+
+            window.editProduct = (id) => {
+                const p = BC.products.get(id);
+                if (p) {
+                    document.getElementById('modalTitle').textContent = 'Editar Produto';
+                    document.getElementById('prodId').value = p.id;
+                    document.getElementById('prodName').value = p.name;
+                    document.getElementById('prodPrice').value = p.price;
+                    document.getElementById('prodType').value = p.type;
+                    document.getElementById('prodDesc').value = p.description || '';
+                    document.getElementById('prodImage').value = p.image || '';
+                    BC.modal.open('productModal');
+                }
+            };
+
+            window.deleteProduct = (id) => {
+                if (confirm('Tem certeza que deseja excluir este produto? Os checkouts vinculados a ele podem parar de funcionar.')) {
+                    BC.products.delete(id);
+                    BC.toast.success('Excluído', 'Produto removido do catálogo.');
+                    render();
+                }
+            };
+
+            BCLayout.sidebar.init();
+        }
+    </script>
+</body>
+
+</html>

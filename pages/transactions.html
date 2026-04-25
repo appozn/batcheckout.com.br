@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transações — BatCheckout</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/css/design-system.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
+</head>
+
+<body>
+  <script src="../assets/js/bc.js"></script>
+  <script src="../assets/js/layout.js"></script>
+
+  <script>
+    const content = BCLayout.init('transactions', 'Transações', 'Acompanhe as vendas e status dos pagamentos');
+
+    if (content) {
+      let txs = BC.auth.isAdmin() ? BC.transactions.getGlobal() : BC.transactions.getAll();
+      let filterStatus = 'all';
+
+      const render = () => {
+        const filtered = filterStatus === 'all' ? txs : txs.filter(t => t.status === filterStatus);
+
+        content.innerHTML = `
+          <div class="page-header">
+            <div class="page-header-left">
+              <h2>Histórico de Vendas</h2>
+              <p>Todas as transações processadas na sua conta</p>
+            </div>
+            <div style="display:flex; gap:10px;">
+              <select id="statusFilter" class="form-select" style="width:160px; height:40px;">
+                <option value="all">Todos os Status</option>
+                <option value="approved">Aprovados</option>
+                <option value="pending">Pendentes</option>
+                <option value="refused">Recusados</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="card">
+            ${filtered.length === 0 ? `
+              <div class="empty-state">
+                ${BC.icon('search', 48)}
+                <h3>Sem resultados</h3>
+                <p>Nenhuma transação encontrada com os filtros atuais.</p>
+              </div>
+            ` : `
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>ID Transação / Data</th>
+                      <th>Produto / Cliente</th>
+                      <th>Método</th>
+                      <th>Valor</th>
+                      <th>Status</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${filtered.map(t => `
+                      <tr>
+                        <td>
+                          <div style="font-family:monospace; font-size:0.75rem; color:var(--text-muted)">${t.id.split('-')[0].toUpperCase()}</div>
+                          <small>${BC.format.datetime(t.createdAt)}</small>
+                        </td>
+                        <td>
+                          <strong>${t.productName}</strong><br>
+                          <small style="color:var(--text-muted)">${t.customerName} - ${t.customerEmail || ''}</small>
+                        </td>
+                        <td>
+                           <div style="display:flex; align-items:center; gap:6px;">
+                             ${t.method === 'pix' ? BC.icon('pix', 14) : BC.icon('card', 14)}
+                             <span style="text-transform:uppercase; font-size:0.7rem; font-weight:600;">${t.method || 'PIX'}</span>
+                           </div>
+                        </td>
+                        <td><strong>${BC.format.currency(t.amount)}</strong></td>
+                        <td>
+                          ${t.status === 'approved' ? '<span class="badge badge-success">Aprovado</span>' : ''}
+                          ${t.status === 'pending' ? '<span class="badge badge-warning">Pendente</span>' : ''}
+                          ${t.status === 'refused' ? '<span class="badge badge-danger">Recusado</span>' : ''}
+                        </td>
+                        <td>
+                          <button class="btn btn-ghost btn-sm" onclick="alert('Detalhes da transação:\\nNome: ${t.customerName}\\nEmail: ${t.customerEmail}\\nGateway ID: ${t.gatewayId || 'Não integrado'}')">${BC.icon('eye', 14)} Detalhes</button>
+                        </td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            `}
+          </div>
+        `;
+
+        document.getElementById('statusFilter').value = filterStatus;
+        document.getElementById('statusFilter').addEventListener('change', (e) => {
+          filterStatus = e.target.value;
+          render();
+        });
+      };
+
+      render();
+      BCLayout.sidebar.init();
+    }
+  </script>
+</body>
+
+</html>

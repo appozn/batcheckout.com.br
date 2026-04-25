@@ -1,0 +1,221 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — BatCheckout</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/css/design-system.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
+</head>
+
+<body>
+  <script src="../assets/js/bc.js"></script>
+  <script src="../assets/js/layout.js"></script>
+
+  <script>
+    const content = BCLayout.init('dashboard', 'Dashboard', 'Visão geral das suas vendas');
+
+    if (content) {
+      // 1. Get transactions and calculate KPIs
+      const txs = BC.transactions.getAll();
+      const approved = txs.filter(t => t.status === 'approved');
+
+      const totalRevenue = approved.reduce((acc, t) => acc + Number(t.amount || 0), 0);
+      const totalSales = approved.length;
+      const allTx = txs.length;
+      const conversionRate = allTx > 0 ? ((totalSales / allTx) * 100).toFixed(1) : '0';
+      const ticketMedio = totalSales > 0 ? (totalRevenue / totalSales) : 0;
+
+      // 2. Render content
+      content.innerHTML = `
+        <div id="pushBanner"></div>
+        <div class="grid grid-4 mb-6">
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <div class="stat-card-label">Faturamento Liquido</div>
+              <div class="stat-card-icon" style="background:rgba(139,0,75,0.12); color:var(--secondary)">
+                ${BC.icon('trending')}
+              </div>
+            </div>
+            <div class="stat-card-value">${BC.format.currency(totalRevenue)}</div>
+            <div class="stat-card-change">
+              <span style="color:var(--text-muted)">Hoje de Vendas</span>
+            </div>
+          </div>
+          
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <div class="stat-card-label">Vendas Aprovadas</div>
+              <div class="stat-card-icon" style="background:rgba(34,197,94,0.12); color:var(--success)">
+                ${BC.icon('check')}
+              </div>
+            </div>
+            <div class="stat-card-value">${totalSales}</div>
+            <div class="stat-card-change">
+              <span style="color:var(--text-muted)">Pedidos finalizados</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <div class="stat-card-label">Ticket Médio</div>
+              <div class="stat-card-icon" style="background:rgba(59,130,246,0.12); color:var(--info)">
+                ${BC.icon('card')}
+              </div>
+            </div>
+            <div class="stat-card-value">${BC.format.currency(ticketMedio)}</div>
+            <div class="stat-card-change">
+              <span style="color:var(--text-muted)">Por pedido aprovado</span>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <div class="stat-card-label">Conversão</div>
+              <div class="stat-card-icon" style="background:rgba(239,68,68,0.12); color:var(--danger)">
+                ${BC.icon('percent')}
+              </div>
+            </div>
+            <div class="stat-card-value">${conversionRate}%</div>
+            <div class="stat-card-change">
+              <span style="color:var(--text-muted)">De ${allTx} transações</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Últimas Transações</div>
+                <div class="card-subtitle">As últimas 10 compras registradas no seu checkout</div>
+              </div>
+            </div>
+            ${txs.length === 0 ? `
+              <div class="empty-state">
+                ${BC.icon('barChart', 48)}
+                <h3>Sem transações</h3>
+                <p>Nenhuma transação foi feita ainda. Compartilhe seus checkouts para atrair vendas.</p>
+                <a href="products.html" class="btn btn-primary mt-2">Criar Produto e Checkout</a>
+              </div>
+            ` : `
+              <div class="table-wrapper">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Produto / Cliente</th>
+                      <th>Valor</th>
+                      <th>Status</th>
+                      <th>Data</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    ${txs.slice(0, 10).map(t => `
+                      <tr>
+                        <td>
+                          <strong>${t.productName}</strong><br>
+                          <small style="color:var(--text-muted)">${t.customerName}</small>
+                        </td>
+                        <td><strong>${BC.format.currency(t.amount)}</strong></td>
+                        <td>
+                          ${t.status === 'approved' ? '<span class="badge badge-success">Aprovado</span>' : ''}
+                          ${t.status === 'pending' ? '<span class="badge badge-warning">Pendente</span>' : ''}
+                          ${t.status === 'refused' ? '<span class="badge badge-danger">Recusado</span>' : ''}
+                        </td>
+                        <td>${BC.format.datetime(t.createdAt)}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            `}
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Ações Rápidas</div>
+                <div class="card-subtitle">Atalhos para agilizar sua operação</div>
+              </div>
+            </div>
+            <div class="grid grid-2">
+              <a href="products.html" class="stat-card" style="text-decoration:none;">
+                <div class="stat-card-icon" style="background:var(--bg-input); color:var(--secondary); margin-bottom:12px;">
+                  ${BC.icon('plus')}
+                </div>
+                <strong style="color:var(--text-primary);">Criar Produto</strong>
+                <small style="color:var(--text-muted)">Cadastre um novo produto físico ou digital</small>
+              </a>
+              <a href="checkouts.html" class="stat-card" style="text-decoration:none;">
+                <div class="stat-card-icon" style="background:var(--bg-input); color:var(--secondary); margin-bottom:12px;">
+                  ${BC.icon('checkout')}
+                </div>
+                <strong style="color:var(--text-primary);">Criar Checkout</strong>
+                <small style="color:var(--text-muted)">Monte um checkout com drag-and-drop</small>
+              </a>
+              <a href="integrations.html" class="stat-card" style="text-decoration:none;">
+                <div class="stat-card-icon" style="background:var(--bg-input); color:var(--secondary); margin-bottom:12px;">
+                  ${BC.icon('settings')}
+                </div>
+                <strong style="color:var(--text-primary);">Configurar Gateway</strong>
+                <small style="color:var(--text-muted)">Acesse suas chaves de API e integrações</small>
+              </a>
+              <a href="webhooks.html" class="stat-card" style="text-decoration:none;">
+                <div class="stat-card-icon" style="background:var(--bg-input); color:var(--secondary); margin-bottom:12px;">
+                  ${BC.icon('webhooks')}
+                </div>
+                <strong style="color:var(--text-primary);">Configurar Webhooks</strong>
+                <small style="color:var(--text-muted)">Configure o envio de notificações para seu sistema</small>
+              </a>
+            </div>
+          </div>
+        </div>
+      `;
+      BCLayout.sidebar.init();
+
+      // 3. PWA Notifications Activation & Listener Simulation
+      setTimeout(() => {
+        if ('Notification' in window && navigator.serviceWorker) {
+          navigator.serviceWorker.register('../sw.js').then(reg => {
+            const channel = new BroadcastChannel('bat_push_sim');
+            channel.addEventListener('message', e => {
+              const payload = e.data;
+              if (Notification.permission === 'granted') {
+                reg.showNotification(payload.title, payload.options);
+              }
+            });
+          });
+
+          if (Notification.permission !== 'granted') {
+            document.getElementById('pushBanner').innerHTML = `
+                          <div class="card card-sm mb-6" style="background:#FF4FA315; border-color:var(--primary); display:flex; justify-content:space-between; align-items:center;">
+                            <div>
+                              <h4 style="color:var(--primary); margin:0; font-size:1.1rem;">Ative as notificações de vendas!</h4>
+                              <p style="margin:4px 0 0; color:var(--text-secondary); font-size:0.9rem;">Receba os alertas de "Pix Gerado" e "Venda Paid!" diretamente na tela do seu celular (Web Push nativo).</p>
+                            </div>
+                            <button class="btn btn-primary" onclick="requestPush()">Ativar notificações de vendas</button>
+                          </div>
+                        `;
+          }
+        }
+      }, 500);
+
+      window.requestPush = () => {
+        Notification.requestPermission().then(perm => {
+          if (perm === 'granted') {
+            document.getElementById('pushBanner').innerHTML = '';
+            BC.toast.success('Pronto!', 'Notificações push ativadas com sucesso. Acompanhe suas vendas através dos alertas do sistema.');
+            // In a real Backend DB: Send Web-Push Subscription object to the Server DB mapping to the userId
+          } else {
+            BC.toast.error('Erro de Permissão', 'A permissão de notificação foi negada pelo seu navegador.');
+          }
+        });
+      };
+    }
+  </script>
+</body>
+
+</html>

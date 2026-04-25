@@ -1,0 +1,123 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Checkouts — BatCheckout</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/css/design-system.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
+</head>
+
+<body>
+  <script src="../assets/js/bc.js"></script>
+  <script src="../assets/js/layout.js"></script>
+
+  <script>
+    const content = BCLayout.init('checkouts', 'Checkouts', 'Gerencie suas páginas de pagamento de alta conversão');
+
+    if (content) {
+      const render = () => {
+        const checkouts = BC.checkouts.getAll();
+        const products = BC.products.getAll();
+
+        content.innerHTML = `
+          <div class="page-header">
+            <div class="page-header-left">
+              <h2>Páginas de Checkout</h2>
+              <p>Crie e personalize o link de pagamento dos seus produtos</p>
+            </div>
+            <a href="builder.html" class="btn btn-primary">
+              ${BC.icon('plus')} Criar Checkout
+            </a>
+          </div>
+
+          ${checkouts.length === 0 ? `
+            <div class="empty-state">
+              ${BC.icon('checkout', 48)}
+              <h3>Nenhum checkout criado</h3>
+              <p>Crie seu primeiro checkout vinculado a um produto e comece a vender.</p>
+              <a href="builder.html" class="btn btn-primary mt-4">
+                Criar primeiro checkout
+              </a>
+            </div>
+          ` : `
+            <div class="grid grid-3">
+              ${checkouts.map(c => {
+          const prod = products.find(p => p.id === c.productId);
+          return `
+                <div class="card card-sm">
+                  <div class="flex items-center justify-between mb-4">
+                    <div>
+                      <div style="font-size:0.9rem; font-weight:700; color:var(--text-primary)">${c.name}</div>
+                      <div style="font-size:0.75rem; color:var(--text-muted)">/${c.slug}</div>
+                    </div>
+                    <div class="badge badge-success">Ativo</div>
+                  </div>
+                  
+                  <div style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:16px;">
+                    <span style="color:var(--text-muted)">Produto:</span> ${prod ? prod.name : '<span style="color:var(--danger)">Produto Excluído</span>'}<br>
+                    <span style="color:var(--text-muted)">Preço:</span> ${prod ? BC.format.currency(prod.price) : 'R$ 0,00'}
+                  </div>
+
+                  <div class="copy-field mb-4">
+                    <input type="text" value="${window.location.origin}/pages/checkout.html?s=${c.slug}" readonly id="link_${c.id}" />
+                    <button onclick="BC.copyToClipboard(document.getElementById('link_${c.id}').value)">${BC.icon('copy', 14)} Copiar</button>
+                  </div>
+
+                  <div class="flex gap-2">
+                    <button class="btn btn-primary btn-sm flex-1" onclick="BC.modal.open('publishModal')">${BC.icon('globe', 14)} Publicar / Domínio</button>
+                    <a href="builder.html?id=${c.id}" class="btn btn-secondary btn-sm flex-1">${BC.icon('edit', 14)} Design</a>
+                    <button class="btn btn-danger btn-sm" onclick="deleteCheckout('${c.id}')">${BC.icon('trash', 14)}</button>
+                  </div>
+                </div>
+              `}).join('')}
+            </div>
+          `}
+
+          <!-- Publish Modal -->
+          <div class="modal-overlay" id="publishModal">
+            <div class="modal">
+              <div class="modal-header">
+                <h3>Publicar Checkout</h3>
+                <button class="modal-close" onclick="BC.modal.close('publishModal')">${BC.icon('x')}</button>
+              </div>
+              <div class="modal-body">
+                <p>Para publicá-lo em seu próprio domínio, crie um apontamento DNS do tipo <strong>CNAME</strong> apontando para:</p>
+                <div class="copy-field mt-4 mb-4">
+                  <input type="text" value="cname.batcheckout.com" readonly id="cnameTarget" />
+                  <button onclick="BC.copyToClipboard(document.getElementById('cnameTarget').value)">Copiar</button>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Seu domínio (ex: checkout.sualoja.com)</label>
+                  <input type="text" class="form-input" placeholder="checkout.seudominio.com" />
+                </div>
+              </div>
+              <div class="modal-footer mt-4">
+                <button class="btn btn-ghost" onclick="BC.modal.close('publishModal')">Cancelar</button>
+                <button class="btn btn-primary" onclick="BC.toast.success('Domínio salvo', 'Aguarde a propagação DNS (até 24h)'); BC.modal.close('publishModal')">Salvar Hospedagem</button>
+              </div>
+            </div>
+          </div>
+
+        `;
+      };
+
+      render();
+
+      window.deleteCheckout = (id) => {
+        if (confirm('Tem certeza que deseja excluir esta página de checkout? O link parará de funcionar imediatamente.')) {
+          BC.checkouts.delete(id);
+          BC.toast.success('Excluído', 'Checkout removido com sucesso.');
+          render();
+        }
+      };
+
+      BCLayout.sidebar.init();
+    }
+  </script>
+</body>
+
+</html>

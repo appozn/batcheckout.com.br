@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configurações — BatCheckout</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/css/design-system.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
+</head>
+
+<body>
+  <script src="../assets/js/bc.js"></script>
+  <script src="../assets/js/layout.js"></script>
+
+  <script>
+    const content = BCLayout.init('settings', 'Configurações', 'Preferências da sua conta');
+
+    if (content) {
+      const user = BC.auth.getCurrentUser();
+
+      content.innerHTML = `
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Perfil do Usuário</div>
+                <div class="card-subtitle">Informações básicas da conta</div>
+              </div>
+            </div>
+            <form id="profileForm">
+              <div class="form-group mb-4">
+                <label class="form-label">Nome Completo</label>
+                <input type="text" class="form-input" id="uName" value="${user.name || ''}" />
+              </div>
+              <div class="form-group mb-4">
+                <label class="form-label">Email cadastrado</label>
+                <input type="email" class="form-input" value="${user.email}" disabled style="background:var(--bg-card); cursor:not-allowed; opacity:0.7" />
+              </div>
+              <div class="form-group mb-4">
+                <label class="form-label">Data de Entrada</label>
+                <input type="text" class="form-input" value="${BC.format.datetime(user.createdAt)}" disabled style="background:var(--bg-card); cursor:not-allowed; opacity:0.7" />
+              </div>
+              <button type="submit" class="btn btn-primary">Atualizar Perfil</button>
+            </form>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Segurança e Acesso</div>
+                <div class="card-subtitle">Senhas e chaves da API</div>
+              </div>
+            </div>
+            
+            <div style="border-bottom: 1px solid var(--border); padding-bottom: 24px; margin-bottom: 24px;">
+              <form id="passForm">
+                <div class="form-group mb-4">
+                  <label class="form-label">Nova Senha</label>
+                  <input type="password" class="form-input" id="uPass" placeholder="Deixe em branco para não alterar" />
+                </div>
+                <button type="submit" class="btn btn-secondary">Alterar Senha</button>
+              </form>
+            </div>
+
+            <div>
+              <div class="form-group">
+                <label class="form-label">BatCheckout Private API Key</label>
+                <div class="copy-field">
+                  <input type="password" value="bat_live_x8F2${user.id.substring(0, 8)}9P" readonly id="myApi" />
+                  <button type="button" onclick="const x=document.getElementById('myApi'); if(x.type==='password') {x.type='text';} else {BC.copyToClipboard(x.value);}">${BC.icon('eye', 14)} Mostrar</button>
+                </div>
+                <p style="font-size:0.75rem; color:var(--text-muted); margin-top:8px;">Use esta chave para criar integrações próprias via API com sua plataforma de ERP ou logística.</p>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      `;
+
+      document.getElementById('profileForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        // update users list
+        const users = BC.storage.get('users', []);
+        const idx = users.findIndex(u => u.id === user.id);
+        if (idx !== -1) {
+          users[idx].name = document.getElementById('uName').value;
+          BC.storage.set('users', users);
+          // update session
+          user.name = users[idx].name;
+          BC.storage.set('user_session', user);
+          BC.toast.success('Salvo', 'Perfil atualizado com sucesso.');
+          setTimeout(() => window.location.reload(), 1000); // refresh sidebar name
+        }
+      });
+
+      document.getElementById('passForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const p = document.getElementById('uPass').value;
+        if (!p) return BC.toast.error('Erro', 'Formato inválido de senha.');
+        if (p.length < 6) return BC.toast.error('Erro', 'Muito curta.');
+
+        const users = BC.storage.get('users', []);
+        const idx = users.findIndex(u => u.id === user.id);
+        if (idx !== -1) {
+          users[idx].password = btoa(p);
+          BC.storage.set('users', users);
+          BC.toast.success('Sucesso', 'Sua senha foi alterada.');
+          document.getElementById('uPass').value = '';
+        }
+      });
+
+      BCLayout.sidebar.init();
+    }
+  </script>
+</body>
+
+</html>
