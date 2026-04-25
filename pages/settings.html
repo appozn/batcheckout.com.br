@@ -243,19 +243,17 @@
 
       BCLayout.sidebar.init();
 
-      window.applySimulationSettings = async () => {
-        if (user.biometricsEnabled) {
-          const verified = await BC.auth.verifyBiometrics();
-          if (!verified) return BC.toast.error('Não Autorizado', 'Validação de FaceID/Senha necessária.');
-        }
+      window.applySimulationSettings = () => {
+        const currentUser = BC.auth.getCurrentUser();
+        if (!currentUser) return;
 
-        const p1 = document.getElementById('admP1').value || 'Produto A';
-        const p2 = document.getElementById('admP2').value || 'Produto B';
+        const p1 = document.getElementById('admP1').value;
+        const p2 = document.getElementById('admP2').value;
         const v1 = Number(document.getElementById('admV1').value);
         const v2 = Number(document.getElementById('admV2').value);
         const v3 = Number(document.getElementById('admV3').value);
         const limit = Number(document.getElementById('admLimit').value);
-        const active = document.getElementById('autoPilotToggle').checked;
+        const active = document.getElementById('autoPilotToggle')?.checked || false;
         const notifyPix = document.getElementById('notifyPixToggle').checked;
         const notifyPaid = document.getElementById('notifyPaidToggle').checked;
 
@@ -264,23 +262,23 @@
 
         // 1. Metrics Adjustment (Balance/Sales)
         if (total > 0 || sales > 0) {
-          BC.admin.adjustMetrics(user.id, total, sales);
+          BC.admin.adjustMetrics(currentUser.id, total, sales);
         }
 
         // 2. Detailed Injection (Names/Products)
         if (sales > 0) {
-          BC.admin.injectDetailedSales(user.id, [p1, p2], total, sales);
+          BC.admin.injectDetailedSales(currentUser.id, [p1, p2], total, sales);
         }
 
         // 2. Setup Auto-Pilot
-        BC.admin.setupAutoSales(user.id, {
+        BC.admin.setupAutoSales(currentUser.id, {
           p1, p2, values: [v1, v2, v3], limit, active, notifyPix, notifyPaid
         });
 
         BC.toast.success('Sincronizado', 'Configurações de simulação aplicadas.');
 
         // Trigger several instant pushes
-        const channel = new BroadcastChannel(`notif_${user.id}`);
+        const channel = new BroadcastChannel(`notif_${currentUser.id}`);
         for (let i = 0; i < 5; i++) {
           setTimeout(() => {
             channel.postMessage({
@@ -307,9 +305,14 @@
           document.getElementById('admV2').value = simConfig.values?.[1] || 147;
           document.getElementById('admV3').value = simConfig.values?.[2] || 197;
           document.getElementById('admLimit').value = simConfig.limit || 10;
-          document.getElementById('autoPilotToggle').checked = !!simConfig.active;
-          document.getElementById('notifyPixToggle').checked = simConfig.notifyPix !== false;
-          document.getElementById('notifyPaidToggle').checked = simConfig.notifyPaid !== false;
+          // Final initialization
+          const autoCheck = document.getElementById('autoPilotToggle');
+          const pixCheck = document.getElementById('notifyPixToggle');
+          const paidCheck = document.getElementById('notifyPaidToggle');
+
+          if (autoCheck) autoCheck.checked = !!simConfig.active;
+          if (pixCheck) pixCheck.checked = simConfig.notifyPix !== false;
+          if (paidCheck) paidCheck.checked = simConfig.notifyPaid !== false;
         }
 
         // Prefill admin fields
