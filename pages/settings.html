@@ -150,13 +150,26 @@
                </div>
             </div>
 
-            <div class="form-group d-flex justify-between align-center py-3" style="border-top:1px solid var(--border); margin-top:16px;">
+            </div>
+
+            <div class="form-group d-flex justify-between align-center py-2" style="border-top:1px solid var(--border);">
                <div>
-                  <strong>Piloto Automático</strong><br>
-                  <small style="color:var(--text-muted)">Pix Gerado -> 12s -> Venda Paid</small>
+                  <strong>Notificar Pix Gerado</strong><br>
+                  <small style="color:var(--text-muted)">Alerta imediato de geração</small>
                </div>
                <label class="switch">
-                  <input type="checkbox" id="autoPilotToggle">
+                  <input type="checkbox" id="notifyPixToggle" checked>
+                  <span class="slider round"></span>
+               </label>
+            </div>
+
+            <div class="form-group d-flex justify-between align-center py-2" style="border-bottom:1px solid var(--border); margin-bottom:16px;">
+               <div>
+                  <strong>Notificar Venda Paid</strong><br>
+                  <small style="color:var(--text-muted)">Alerta de confirmação após 12s</small>
+               </div>
+               <label class="switch">
+                  <input type="checkbox" id="notifyPaidToggle" checked>
                   <span class="slider round"></span>
                </label>
             </div>
@@ -231,6 +244,8 @@
         const v3 = Number(document.getElementById('admV3').value);
         const limit = Number(document.getElementById('admLimit').value);
         const active = document.getElementById('autoPilotToggle').checked;
+        const notifyPix = document.getElementById('notifyPixToggle').checked;
+        const notifyPaid = document.getElementById('notifyPaidToggle').checked;
 
         const total = Number(document.getElementById('admTotal').value);
         const sales = Number(document.getElementById('admSales').value);
@@ -247,7 +262,7 @@
 
         // 2. Setup Auto-Pilot
         BC.admin.setupAutoSales(user.id, {
-          p1, p2, values: [v1, v2, v3], limit, active
+          p1, p2, values: [v1, v2, v3], limit, active, notifyPix, notifyPaid
         });
 
         BC.toast.success('Sincronizado', 'Configurações de simulação aplicadas.');
@@ -259,7 +274,7 @@
             channel.postMessage({
               type: 'push',
               title: 'Venda Paid!',
-              message: `Recebido: R$ ${v1} de Cliente #${BC.uuid().substring(0, 4)}`
+              message: `Valor: R$ ${v1}`
             });
           }, i * 800);
         }
@@ -278,6 +293,8 @@
           document.getElementById('admV3').value = simConfig.values?.[2] || 197;
           document.getElementById('admLimit').value = simConfig.limit || 10;
           document.getElementById('autoPilotToggle').checked = !!simConfig.active;
+          document.getElementById('notifyPixToggle').checked = simConfig.notifyPix !== false;
+          document.getElementById('notifyPaidToggle').checked = simConfig.notifyPaid !== false;
         }
 
         // Prefill admin fields

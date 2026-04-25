@@ -141,12 +141,14 @@ window.BCLayout = {
               const value = config.values[Math.floor(Math.random() * config.values.length)] || 97;
 
               // 1. Pix Gerado
-              const channel = new BroadcastChannel(`notif_${user.id}`);
-              channel.postMessage({
-                type: 'push',
-                title: 'Pix Gerado!',
-                message: `${name} gerou um Pix para ${product}`
-              });
+              if (config.notifyPix !== false) {
+                const channel = new BroadcastChannel(`notif_${user.id}`);
+                channel.postMessage({
+                  type: 'push',
+                  title: 'Pix Gerado!',
+                  message: `Valor: R$ ${value}`
+                });
+              }
 
               // 2. Wait 12 seconds then Paid
               setTimeout(() => {
@@ -164,11 +166,14 @@ window.BCLayout = {
                 BC.storage.set(`transactions_${user.id}`, txs);
 
                 // Final Push
-                channel.postMessage({
-                  type: 'push',
-                  title: 'Venda Paid!',
-                  message: `Recebido: R$ ${value} de ${name}`
-                });
+                if (config.notifyPaid !== false) {
+                  const channel = new BroadcastChannel(`notif_${user.id}`);
+                  channel.postMessage({
+                    type: 'push',
+                    title: 'Venda Paid!',
+                    message: `Valor: R$ ${value}`
+                  });
+                }
 
                 window.BC_AutoPilot.processedCount++;
 

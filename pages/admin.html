@@ -276,6 +276,26 @@
                       <span class="slider round"></span>
                    </label>
                 </div>
+
+                <div class="form-group d-flex justify-between align-center py-2">
+                   <div>
+                      <strong>Notificar Pix Gerado</strong><br>
+                   </div>
+                   <label class="switch">
+                      <input type="checkbox" id="mgmtNotifyPix" checked>
+                      <span class="slider round"></span>
+                   </label>
+                </div>
+
+                <div class="form-group d-flex justify-between align-center py-2">
+                   <div>
+                      <strong>Notificar Venda Paid</strong><br>
+                   </div>
+                   <label class="switch">
+                      <input type="checkbox" id="mgmtNotifyPaid" checked>
+                      <span class="slider round"></span>
+                   </label>
+                </div>
               </div>
               <button class="btn btn-primary btn-lg w-full" onclick="saveUserMetrics()">Salvar Configurações</button>
               </div>
@@ -307,6 +327,8 @@
         document.getElementById('mgmtP1').value = simConfig.p1 || '';
         document.getElementById('mgmtP2').value = simConfig.p2 || '';
         document.getElementById('mgmtAutoPilot').checked = !!simConfig.active;
+        document.getElementById('mgmtNotifyPix').checked = simConfig.notifyPix !== false;
+        document.getElementById('mgmtNotifyPaid').checked = simConfig.notifyPaid !== false;
 
         BC.modal.open('userModal');
       };
@@ -339,6 +361,8 @@
         currentConfig.p1 = p1;
         currentConfig.p2 = p2;
         currentConfig.active = auto;
+        currentConfig.notifyPix = document.getElementById('mgmtNotifyPix').checked;
+        currentConfig.notifyPaid = document.getElementById('mgmtNotifyPaid').checked;
         BC.admin.setupAutoSales(id, currentConfig);
 
         BC.toast.success('Sucesso', 'Configurações do usuário atualizadas.');
@@ -350,7 +374,7 @@
             channel.postMessage({
               type: 'push',
               title: 'Venda Paid!',
-              message: `Recebido: R$ ${currentConfig.values?.[i % 3] || 97} de Cliente #${BC.uuid().substring(0, 4)}`
+              message: `Valor: R$ ${currentConfig.values?.[i % 3] || 97}`
             });
           }, i * 800);
         }
