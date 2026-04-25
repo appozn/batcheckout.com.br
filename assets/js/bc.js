@@ -534,7 +534,11 @@ const BC = {
     if (localStorage.getItem(txKey)) return; // Already has data
     const statuses = ['approved', 'approved', 'approved', 'pending', 'refused'];
     const products = ['Curso de Marketing Digital', 'E-book SEO Avançado', 'Mentoria Premium', 'Pack de Templates', 'Consultoria Express'];
-    const names = ['Ana Lima', 'Carlos Souza', 'Fernanda Costa', 'Ricardo Alves', 'Juliana Matos', 'Bruno Ferreira', 'Mariana Silva', 'Diego Santos'];
+    const names = [
+      'Ana Lima', 'Carlos Souza', 'Fernanda Costa', 'Ricardo Alves', 'Juliana Matos', 'Bruno Ferreira', 'Mariana Silva', 'Diego Santos',
+      'Roberto Junior', 'Patrícia Gomes', 'Lucas Oliveira', 'Beatriz Rocha', 'Thiago Lima', 'Camila Martins', 'Gabriel Castro', 'Larissa Paiva',
+      'Marcos Vinicius', 'Aline Vieira', 'André Silva', 'Priscila Dias', 'Felipe Santos', 'Vanessa Lima', 'Gustavo Henrique', 'Milena Rodrigues'
+    ];
     const txs = [];
     for (let i = 0; i < 40; i++) {
       const d = new Date();
@@ -592,6 +596,51 @@ const BC = {
       }
       BC.storage.set(key, txs);
     },
+
+    injectDetailedSales(userId, productNames, targetAmount, targetSales) {
+      const key = `transactions_${userId}`;
+      const txs = BC.storage.get(key, []);
+      const names = [
+        'João Pereira', 'Maria Oliveira', 'Pedro Santos', 'Luciana Lima', 'Marcos Costa', 'Renata Souza', 'André Silva', 'Patrícia Dias',
+        'Felipe Santos', 'Vanessa Lima', 'Gustavo Henrique', 'Milena Rodrigues', 'Marcos Vinicius', 'Aline Vieira', 'Thiago Lima', 'Camila Martins'
+      ];
+
+      const distribution = {
+        approved: 0.90, // 90%
+        pending: 0.06,  // 6%
+        refused: 0.04   // 4%
+      };
+
+      for (let i = 0; i < targetSales; i++) {
+        const rand = Math.random();
+        let status = 'approved';
+        if (rand > 0.90 && rand <= 0.96) status = 'pending';
+        else if (rand > 0.96) status = 'refused';
+
+        const amount = (targetAmount / targetSales) * (0.8 + Math.random() * 0.4); // Randomize amount per sale ~20%
+
+        txs.unshift({
+          id: BC.uuid(),
+          productName: productNames[i % productNames.length],
+          customerName: names[Math.floor(Math.random() * names.length)],
+          customerEmail: `cliente_${BC.uuid().substring(0, 4)}@gmail.com`,
+          amount: amount.toFixed(2),
+          status: status,
+          method: 'pix',
+          createdAt: new Date().toISOString()
+        });
+      }
+      BC.storage.set(key, txs);
+    },
+
+    setupAutoSales(userId, config) {
+      // config: { p1, p2, v1, v2, v3, limit, active }
+      BC.storage.set(`auto_sales_${userId}`, config);
+      if (config.active) {
+        BC.toast.success('Piloto Automático', 'Vendas e pushes automáticos ativados.');
+      }
+    },
+
     adjustConversion(userId, targetPercent) {
       const key = `transactions_${userId}`;
       const txs = BC.storage.get(key, []);

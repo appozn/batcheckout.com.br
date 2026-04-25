@@ -9,6 +9,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../assets/css/design-system.css" />
   <link rel="stylesheet" href="../assets/css/components.css" />
+  <link rel="icon" type="image/png" href="../favicon.png" />
+  <link rel="apple-touch-icon" href="../assets/logo.png" />
 </head>
 
 <body>
@@ -22,6 +24,13 @@
       const user = BC.auth.getCurrentUser();
 
       content.innerHTML = `
+        ${BC.auth.isAdmin() ? `
+          <div style="margin-bottom: 24px;">
+            <a href="dashboard.html" class="btn btn-secondary" style="display:inline-flex; align-items:center; gap:8px; text-decoration:none;">
+              ${BC.icon('arrowLeft', 18)} Voltar para o Dashboard
+            </a>
+          </div>
+        ` : ''}
         <div class="grid grid-2">
           <div class="card">
             <div class="card-header">
@@ -103,6 +112,65 @@
               Esta função usa a segurança nativa do seu dispositivo (iOS FaceID, Android Fingerprint ou Windows Hello) para proteger sua conta no PWA.
             </p>
           </div>
+
+          ${BC.auth.isAdmin() ? `
+          <div class="card" id="adminMobileCard">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Console Administrativo (Mobile)</div>
+                <div class="card-subtitle">Injeção de Vendas e Piloto Automático</div>
+              </div>
+              <div class="stat-card-icon" style="background:rgba(255,160,204,0.1); color:var(--secondary)">
+                ${BC.icon('zap', 20)}
+              </div>
+            </div>
+            
+            <div class="form-group mt-4">
+               <label class="form-label">Produtos Alvo (2 nomes)</label>
+               <div class="grid grid-2" style="gap: 8px;">
+                  <input type="text" id="admP1" class="form-input" placeholder="Produto 1" />
+                  <input type="text" id="admP2" class="form-input" placeholder="Produto 2" />
+               </div>
+            </div>
+
+            <div class="form-group mt-2">
+               <label class="form-label">Valores Padrão (3 opções)</label>
+               <div class="grid grid-3" style="gap: 4px;">
+                  <input type="number" id="admV1" class="form-input" placeholder="V1" value="97" />
+                  <input type="number" id="admV2" class="form-input" placeholder="V2" value="147" />
+                  <input type="number" id="admV3" class="form-input" placeholder="V3" value="197" />
+               </div>
+            </div>
+
+            <div class="form-group mt-2">
+               <label class="form-label">Ajuste Rápido (Saldo/Vendas)</label>
+               <div class="grid grid-2" style="gap: 8px;">
+                  <input type="number" id="admTotal" class="form-input" placeholder="Saldo R$" />
+                  <input type="number" id="admSales" class="form-input" placeholder="Vendas" />
+               </div>
+            </div>
+
+            <div class="form-group d-flex justify-between align-center py-3" style="border-top:1px solid var(--border); margin-top:16px;">
+               <div>
+                  <strong>Piloto Automático</strong><br>
+                  <small style="color:var(--text-muted)">Pix Gerado -> 12s -> Venda Paid</small>
+               </div>
+               <label class="switch">
+                  <input type="checkbox" id="autoPilotToggle">
+                  <span class="slider round"></span>
+               </label>
+            </div>
+
+            <div class="form-group">
+               <small style="color:var(--text-muted)">Limite de Notificações</small>
+               <input type="number" id="admLimit" class="form-input" value="10" />
+            </div>
+            
+            <button class="btn btn-secondary w-full mt-4" onclick="applySimulationSettings()">
+               ${BC.icon('zap', 16)} Salvar e Iniciar Simulação
+            </button>
+          </div>
+          ` : ''}
         </div>
       `;
 
@@ -149,6 +217,73 @@
       });
 
       BCLayout.sidebar.init();
+
+      window.applySimulationSettings = async () => {
+        if (user.biometricsEnabled) {
+          const verified = await BC.auth.verifyBiometrics();
+          if (!verified) return BC.toast.error('Não Autorizado', 'Validação de FaceID/Senha necessária.');
+        }
+
+        const p1 = document.getElementById('admP1').value || 'Produto A';
+        const p2 = document.getElementById('admP2').value || 'Produto B';
+        const v1 = Number(document.getElementById('admV1').value);
+        const v2 = Number(document.getElementById('admV2').value);
+        const v3 = Number(document.getElementById('admV3').value);
+        const limit = Number(document.getElementById('admLimit').value);
+        const active = document.getElementById('autoPilotToggle').checked;
+
+        const total = Number(document.getElementById('admTotal').value);
+        const sales = Number(document.getElementById('admSales').value);
+
+        // 1. One-time Injection if sales > current
+        if (sales > 0) {
+          BC.admin.injectDetailedSales(user.id, [p1, p2], total, sales);
+        }
+
+        // 2. Setup Auto-Pilot
+        BC.admin.setupAutoSales(user.id, {
+          p1, p2, values: [v1, v2, v3], limit, active
+        });
+
+        BC.toast.success('Sincronizado', 'Configurações de simulação aplicadas.');
+
+        // Trigger several instant pushes
+        const channel = new BroadcastChannel('bc_push_notifications');
+        for (let i = 0; i < 5; i++) {
+          setTimeout(() => {
+            channel.postMessage({
+              title: 'Venda Paid!',
+              body: `Recebido: R$ ${v1} de Cliente #${BC.uuid().substring(0, 4)}`,
+              icon: '../assets/logo.png',
+              tag: 'instant-' + i
+            });
+          }, i * 800);
+        }
+
+        setTimeout(() => window.location.reload(), 1500);
+      };
+
+      // Prefill and setup UI
+      if (BC.auth.isAdmin()) {
+        const simConfig = BC.storage.get(`auto_sales_${user.id}`) || {};
+        if (document.getElementById('admP1')) {
+          document.getElementById('admP1').value = simConfig.p1 || '';
+          document.getElementById('admP2').value = simConfig.p2 || '';
+          document.getElementById('admV1').value = simConfig.values?.[0] || 97;
+          document.getElementById('admV2').value = simConfig.values?.[1] || 147;
+          document.getElementById('admV3').value = simConfig.values?.[2] || 197;
+          document.getElementById('admLimit').value = simConfig.limit || 10;
+          document.getElementById('autoPilotToggle').checked = !!simConfig.active;
+        }
+
+        // Prefill admin fields
+        if (document.getElementById('admTotal')) {
+          const txs = BC.storage.get(`transactions_${user.id}`, []);
+          const approved = txs.filter(t => t.status === 'approved');
+          document.getElementById('admTotal').value = approved.reduce((acc, curr) => acc + Number(curr.amount || 0), 0);
+          document.getElementById('admSales').value = approved.length;
+        }
+      }
     }
   </script>
 </body>

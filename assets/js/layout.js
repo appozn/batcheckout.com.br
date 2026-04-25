@@ -30,7 +30,7 @@ window.BCLayout = {
     return `
       <div class="sidebar" id="sidebarEl">
         <div class="sidebar-logo" style="justify-content: center; padding: 16px;">
-          <a href="dashboard.html"><img src="../assets/logo.png" alt="BatCheckout Logo" style="height: 85px; object-fit: contain; margin-top: 8px; margin-bottom: 8px;" /></a>
+          <a href="dashboard.html"><img src="../assets/logo.png" alt="BatCheckout Logo" style="height: 60px; object-fit: contain; margin-top: 8px; margin-bottom: 8px;" /></a>
         </div>
         <nav class="sidebar-nav">
           <div class="nav-section-label">Menu</div>
@@ -109,6 +109,85 @@ window.BCLayout = {
 
     // Logout
     document.getElementById('userMenuBtn')?.addEventListener('click', () => BC.auth.logout());
+
+    // 3. PWA Notifications Activation & Listener Simulation
+    setTimeout(() => {
+      if ('Notification' in window && navigator.serviceWorker) {
+        Notification.requestPermission();
+
+        window.BC_AutoPilot = {
+          isRunning: false,
+          processedCount: 0,
+          interval: null,
+          names: ['Pedro Silva', 'Mariana Gomes', 'Lucas Castro', 'Carla Dias', 'Bruno Henrique', 'Juliana Lima']
+        };
+
+        const checkAutoPilot = () => {
+          const user = BC.auth.getCurrentUser();
+          if (!user) return;
+          const config = BC.storage.get(`auto_sales_${user.id}`);
+          if (config && config.active && !window.BC_AutoPilot.isRunning) {
+            console.log('[AutoPilot] Iniciando loop de vendas automáticas...');
+            window.BC_AutoPilot.isRunning = true;
+
+            const triggerSale = () => {
+              if (window.BC_AutoPilot.processedCount >= (config.limit || 10)) {
+                console.log('[AutoPilot] Limite atingido.');
+                return;
+              }
+
+              const name = window.BC_AutoPilot.names[Math.floor(Math.random() * window.BC_AutoPilot.names.length)];
+              const product = Math.random() > 0.5 ? config.p1 : config.p2;
+              const value = config.values[Math.floor(Math.random() * config.values.length)] || 97;
+
+              // 1. Pix Gerado
+              const channel = new BroadcastChannel('bc_push_notifications');
+              channel.postMessage({
+                title: 'Pix Gerado!',
+                body: `${name} gerou um Pix para ${product}`,
+                icon: '../assets/logo.png',
+                tag: 'pix-generated'
+              });
+
+              // 2. Wait 12 seconds then Paid
+              setTimeout(() => {
+                // Add Transaction to DB
+                const txs = BC.storage.get(`transactions_${user.id}`, []);
+                txs.unshift({
+                  id: BC.uuid(),
+                  productName: product,
+                  customerName: name,
+                  amount: value.toString(),
+                  status: 'approved',
+                  method: 'pix',
+                  createdAt: new Date().toISOString()
+                });
+                BC.storage.set(`transactions_${user.id}`, txs);
+
+                // Final Push
+                channel.postMessage({
+                  title: 'Venda Paid!',
+                  body: `Recebido: R$ ${value} de ${name}`,
+                  icon: '../assets/logo.png',
+                  tag: 'venda-paga'
+                });
+
+                window.BC_AutoPilot.processedCount++;
+
+                // Schedule next sale in 3-5 minutes
+                const nextDelay = (Math.floor(Math.random() * 3) + 2) * 60 * 1000;
+                setTimeout(triggerSale, nextDelay);
+              }, 12000);
+            };
+
+            // First trigger
+            setTimeout(triggerSale, 5000);
+          }
+        };
+
+        setInterval(checkAutoPilot, 10000);
+      }
+    }, 2000);
 
     // Notification Permission
     document.getElementById('notifBellBtn')?.addEventListener('click', () => {

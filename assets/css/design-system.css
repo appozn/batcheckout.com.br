@@ -12,7 +12,7 @@
     --primary-light: #aa005c;
     --secondary: #FF4FA3;
     --secondary-hover: #e6378f;
-    --accent: #FF82C0;
+    --accent: #FF4FA3;
     --bg: #f4f5f7;
     --bg-card: #ffffff;
     --bg-sidebar: #ffffff;
@@ -25,8 +25,8 @@
     --text-muted: #6b7280;
     --success: #FF4FA3;
     --success-bg: rgba(255, 79, 163, 0.12);
-    --warning: #8B004B;
-    --warning-bg: rgba(139, 0, 75, 0.12);
+    --warning: #FF4FA3;
+    --warning-bg: rgba(255, 79, 163, 0.12);
     --danger: #8B004B;
     --danger-bg: rgba(139, 0, 75, 0.12);
     --info: #FF4FA3;
@@ -596,13 +596,13 @@ small {
 }
 
 .btn-danger {
-    background: rgba(239, 68, 68, 0.15);
+    background: rgba(139, 0, 75, 0.15);
     color: var(--danger);
-    border: 1px solid rgba(239, 68, 68, 0.3);
+    border: 1px solid rgba(139, 0, 75, 0.3);
 }
 
 .btn-danger:hover:not(:disabled) {
-    background: rgba(239, 68, 68, 0.25);
+    background: rgba(139, 0, 75, 0.25);
 }
 
 .btn-sm {

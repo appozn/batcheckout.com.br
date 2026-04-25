@@ -2,51 +2,52 @@
 <html lang="pt-BR">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Fraudes — BatCheckout Admin</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-        rel="stylesheet" />
-    <link rel="stylesheet" href="../assets/css/design-system.css" />
-    <link rel="stylesheet" href="../assets/css/components.css" />
-    <link rel="icon" type="image/png" href="../assets/logo.png" />
-    <link rel="manifest" href="../manifest.json" />
-    <style>
-        .tab-btn {
-            padding: 8px 16px;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Fraudes — BatCheckout Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/css/design-system.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
+  <link rel="icon" type="image/png" href="../favicon.png" />
+  <link rel="apple-touch-icon" href="../assets/logo.png" />
+  <link rel="icon" type="image/png" href="../assets/logo.png" />
+  <link rel="manifest" href="../manifest.json" />
+  <style>
+    .tab-btn {
+      padding: 8px 16px;
+    }
 
-        .tab-btn.active {
-            border-bottom: 2px solid var(--primary);
-            color: var(--primary) !important;
-        }
-    </style>
+    .tab-btn.active {
+      border-bottom: 2px solid var(--primary);
+      color: var(--primary) !important;
+    }
+  </style>
 </head>
 
 <body>
-    <script src="../assets/js/bc.js"></script>
-    <script src="../assets/js/layout.js"></script>
+  <script src="../assets/js/bc.js"></script>
+  <script src="../assets/js/layout.js"></script>
 
-    <script>
-        if (!BC.auth.requireAdmin()) { }
+  <script>
+    if (!BC.auth.requireAdmin()) { }
 
-        const content = BCLayout.init('frauds', 'Controle de Fraudes', 'Gerenciamento de contas e atividades suspeitas na plataforma');
+    const content = BCLayout.init('frauds', 'Controle de Fraudes', 'Gerenciamento de contas e atividades suspeitas na plataforma');
 
-        if (content) {
-            let activeTab = 'users';
-            let searchQuery = '';
+    if (content) {
+      let activeTab = 'users';
+      let searchQuery = '';
 
-            const render = () => {
-                const users = BC.users.getAll().filter(u => u.email !== BC.auth.ADMIN_EMAIL);
-                const logs = BC.users.getLogs();
+      const render = () => {
+        const users = BC.users.getAll().filter(u => u.email !== BC.auth.ADMIN_EMAIL);
+        const logs = BC.users.getLogs();
 
-                const filteredUsers = users.filter(u =>
-                    u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    u.email.toLowerCase().includes(searchQuery.toLowerCase())
-                );
+        const filteredUsers = users.filter(u =>
+          u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          u.email.toLowerCase().includes(searchQuery.toLowerCase())
+        );
 
-                content.innerHTML = `
+        content.innerHTML = `
           <div class="tabs mb-6" style="display:flex; gap:16px; border-bottom:1px solid var(--border); margin-top:24px;">
             <button class="tab-btn ${activeTab === 'users' ? 'active' : ''}" onclick="switchTab('users')" style="background:none; border:none; color:var(--text-${activeTab === 'users' ? 'primary' : 'secondary'}); font-weight:${activeTab === 'users' ? '700' : '500'}; font-size:1rem; cursor:pointer; margin-bottom:-1px;">Usuários Suspeitos</button>
             <button class="tab-btn ${activeTab === 'logs' ? 'active' : ''}" onclick="switchTab('logs')" style="background:none; border:none; color:var(--text-${activeTab === 'logs' ? 'primary' : 'secondary'}); font-weight:${activeTab === 'logs' ? '700' : '500'}; font-size:1rem; cursor:pointer; margin-bottom:-1px;">Histórico de Bloqueios</button>
@@ -63,9 +64,9 @@
                 <thead><tr><th>Vendedor</th><th>Data Cadastro</th><th>Total Transações</th><th>Status da Conta</th><th class="text-right">Ações de Risco</th></tr></thead>
                 <tbody>
                   ${filteredUsers.map(u => {
-                    // Pull mocked metrics
-                    const txs = BC.storage.get('transactions_' + u.id, []);
-                    return `
+          // Pull mocked metrics
+          const txs = BC.storage.get('transactions_' + u.id, []);
+          return `
                     <tr>
                       <td>
                         <div style="font-weight:700; color:var(--text-primary)">${u.name}</div>
@@ -78,9 +79,9 @@
                       </td>
                       <td class="text-right">
                         ${u.isActive !== false ?
-                            `<button class="btn btn-danger btn-sm" onclick="openBlockModal('${u.id}', '${u.name}', true)">${BC.icon('eyeOff', 14)} Bloquear Conta</button>` :
-                            `<button class="btn btn-secondary btn-sm" onclick="openBlockModal('${u.id}', '${u.name}', false)">Desbloquear Acesso</button>`
-                        }
+              `<button class="btn btn-danger btn-sm" onclick="openBlockModal('${u.id}', '${u.name}', true)">${BC.icon('eyeOff', 14)} Bloquear Conta</button>` :
+              `<button class="btn btn-secondary btn-sm" onclick="openBlockModal('${u.id}', '${u.name}', false)">Desbloquear Acesso</button>`
+            }
                       </td>
                     </tr>
                   `}).join('')}
@@ -94,12 +95,12 @@
                 <thead><tr><th>Data da Autuação</th><th>Administrador(a)</th><th>Ação do Sistema</th><th>Conta Afetada</th><th>Motivo / Parecer Técnico</th></tr></thead>
                 <tbody>
                   ${logs.map(l => {
-                            const targetUser = users.find(u => u.id === l.userId) || { name: 'Deletado', email: l.userId };
-                            return `
+              const targetUser = users.find(u => u.id === l.userId) || { name: 'Deletado', email: l.userId };
+              return `
                     <tr>
                       <td style="color:var(--text-secondary)">${BC.format.datetime(l.createdAt)}</td>
                       <td><div class="badge" style="background:var(--text-primary); color:white;">${l.adminName}</div></td>
-                      <td>${l.action === 'BLOCK' ? '<span class="badge badge-danger">Bloqueio Ativo</span>' : '<span class="badge" style="background:#FF4FA320;color:#FF4FA3">Acesso Liberado</span>'}</td>
+                      <td>${l.action === 'BLOCK' ? '<span class="badge badge-danger">Bloqueio Ativo</span>' : '<span class="badge" style="background:rgba(255,79,163,0.15);color:#FF4FA3">Acesso Liberado</span>'}</td>
                       <td>
                         <div style="font-weight:700; color:var(--text-primary)">${targetUser.name}</div>
                         <div style="font-size:0.8rem; color:var(--text-muted)">${targetUser.email}</div>
@@ -135,61 +136,61 @@
             </div>
           </div>
         `;
-            };
+      };
 
-            window.switchTab = (tab) => {
-                activeTab = tab;
-                render();
-            };
+      window.switchTab = (tab) => {
+        activeTab = tab;
+        render();
+      };
 
-            window.openBlockModal = (id, name, isBlock) => {
-                document.getElementById('bmUserId').value = id;
-                document.getElementById('bmIsBlock').value = isBlock ? 'YES' : 'NO';
+      window.openBlockModal = (id, name, isBlock) => {
+        document.getElementById('bmUserId').value = id;
+        document.getElementById('bmIsBlock').value = isBlock ? 'YES' : 'NO';
 
-                const title = isBlock ? 'Bloquear Sub-Conta' : 'Restabelecer Vendedor';
-                const msg = isBlock
-                    ? `Atenção: Tem certeza que deseja bloquear permanentemente a conta do usuário <strong>${name}</strong>?<br/>Isso o impedirá de acessar o sistema de dashboard, e os links dos checkouts ativos retornarão página indisponível para novos clientes.`
-                    : `Validar reativação plena do usuário <strong>${name}</strong>? Todo o fluxo do ecossistema e chaves PIX dele voltarão a operar online.`;
+        const title = isBlock ? 'Bloquear Sub-Conta' : 'Restabelecer Vendedor';
+        const msg = isBlock
+          ? `Atenção: Tem certeza que deseja bloquear permanentemente a conta do usuário <strong>${name}</strong>?<br/>Isso o impedirá de acessar o sistema de dashboard, e os links dos checkouts ativos retornarão página indisponível para novos clientes.`
+          : `Validar reativação plena do usuário <strong>${name}</strong>? Todo o fluxo do ecossistema e chaves PIX dele voltarão a operar online.`;
 
-                document.getElementById('bmTitle').innerHTML = title;
-                document.getElementById('bmTitle').style.color = isBlock ? 'var(--danger)' : 'var(--text-primary)';
-                document.getElementById('bmText').innerHTML = msg;
-                document.getElementById('bmText').style.color = isBlock ? 'var(--danger)' : 'var(--text-primary)';
-                document.getElementById('bmReason').value = '';
+        document.getElementById('bmTitle').innerHTML = title;
+        document.getElementById('bmTitle').style.color = isBlock ? 'var(--danger)' : 'var(--text-primary)';
+        document.getElementById('bmText').innerHTML = msg;
+        document.getElementById('bmText').style.color = isBlock ? 'var(--danger)' : 'var(--text-primary)';
+        document.getElementById('bmReason').value = '';
 
-                const btn = document.getElementById('confirmBlockBtn');
-                if (isBlock) {
-                    btn.className = 'btn btn-danger w-full btn-lg';
-                    btn.innerHTML = 'CONFIRMAR AÇÃO (IRREVERSÍVEL)';
-                    btn.style.background = '';
-                } else {
-                    btn.className = 'btn btn-primary w-full btn-lg';
-                    btn.innerHTML = 'LIBERAR ACESSO';
-                    btn.style.background = '#FF4FA3';
-                }
-
-                BC.modal.open('blockModal');
-            };
-
-            content.addEventListener('click', (e) => {
-                if (e.target && e.target.id === 'confirmBlockBtn') {
-                    const id = document.getElementById('bmUserId').value;
-                    const isBlock = document.getElementById('bmIsBlock').value === 'YES';
-                    const reason = document.getElementById('bmReason').value || (isBlock ? 'Bloqueio preventivo sem justificativa listada' : 'Ação reversa executada');
-                    const admin = BC.auth.getCurrentUser().name || 'Administração Sistema';
-
-                    BC.users.update(id, { isActive: !isBlock });
-                    BC.users.addLog(id, admin, isBlock ? 'BLOCK' : 'UNBLOCK', reason);
-                    BC.toast.success('Sucesso Sistêmico', isBlock ? 'Restrições implantadas com sucesso no nó da conta.' : 'Privilégios da conta reatribuídos limpos.');
-                    BC.modal.close('blockModal');
-                    render();
-                }
-            });
-
-            render();
-            BCLayout.sidebar.init();
+        const btn = document.getElementById('confirmBlockBtn');
+        if (isBlock) {
+          btn.className = 'btn btn-danger w-full btn-lg';
+          btn.innerHTML = 'CONFIRMAR AÇÃO (IRREVERSÍVEL)';
+          btn.style.background = '';
+        } else {
+          btn.className = 'btn btn-primary w-full btn-lg';
+          btn.innerHTML = 'LIBERAR ACESSO';
+          btn.style.background = '#FF4FA3';
         }
-    </script>
+
+        BC.modal.open('blockModal');
+      };
+
+      content.addEventListener('click', (e) => {
+        if (e.target && e.target.id === 'confirmBlockBtn') {
+          const id = document.getElementById('bmUserId').value;
+          const isBlock = document.getElementById('bmIsBlock').value === 'YES';
+          const reason = document.getElementById('bmReason').value || (isBlock ? 'Bloqueio preventivo sem justificativa listada' : 'Ação reversa executada');
+          const admin = BC.auth.getCurrentUser().name || 'Administração Sistema';
+
+          BC.users.update(id, { isActive: !isBlock });
+          BC.users.addLog(id, admin, isBlock ? 'BLOCK' : 'UNBLOCK', reason);
+          BC.toast.success('Sucesso Sistêmico', isBlock ? 'Restrições implantadas com sucesso no nó da conta.' : 'Privilégios da conta reatribuídos limpos.');
+          BC.modal.close('blockModal');
+          render();
+        }
+      });
+
+      render();
+      BCLayout.sidebar.init();
+    }
+  </script>
 </body>
 
 </html>

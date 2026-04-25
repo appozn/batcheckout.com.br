@@ -9,6 +9,8 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="../assets/css/design-system.css" />
   <link rel="stylesheet" href="../assets/css/components.css" />
+  <link rel="icon" type="image/png" href="../favicon.png" />
+  <link rel="apple-touch-icon" href="../assets/logo.png" />
 </head>
 
 <body>
@@ -80,10 +82,10 @@
                         </td>
                         <td><strong>${BC.format.currency(t.amount)}</strong></td>
                         <td>
-                          ${t.status === 'approved' ? '<span class="badge badge-success">Aprovado</span>' : ''}
-                          ${t.status === 'pending' ? '<span class="badge badge-warning">Pendente</span>' : ''}
-                          ${t.status === 'refused' ? '<span class="badge badge-danger">Recusado</span>' : ''}
-                        </td>
+                        <span class="badge ${t.status === 'approved' ? 'badge-success' : t.status === 'pending' ? 'badge-warning' : 'badge-danger'}">
+                    ${BC.icon(t.status === 'approved' ? 'check' : t.status === 'pending' ? 'clock' : 'x', 12)}
+                    ${t.status === 'approved' ? 'Aprovado' : t.status === 'pending' ? 'Pendente' : 'Recusado'}
+                  </span>      </td>
                         <td>
                           <button class="btn btn-ghost btn-sm" onclick="alert('Detalhes da transação:\\nNome: ${t.customerName}\\nEmail: ${t.customerEmail}\\nGateway ID: ${t.gatewayId || 'Não integrado'}')">${BC.icon('eye', 14)} Detalhes</button>
                         </td>

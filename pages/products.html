@@ -2,28 +2,29 @@
 <html lang="pt-BR">
 
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Produtos — BatCheckout</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
-        rel="stylesheet" />
-    <link rel="stylesheet" href="../assets/css/design-system.css" />
-    <link rel="stylesheet" href="../assets/css/components.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Produtos — BatCheckout</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../assets/css/design-system.css" />
+  <link rel="stylesheet" href="../assets/css/components.css" />
+  <link rel="icon" type="image/png" href="../favicon.png" />
+  <link rel="apple-touch-icon" href="../assets/logo.png" />
 </head>
 
 <body>
-    <script src="../assets/js/bc.js"></script>
-    <script src="../assets/js/layout.js"></script>
+  <script src="../assets/js/bc.js"></script>
+  <script src="../assets/js/layout.js"></script>
 
-    <script>
-        const content = BCLayout.init('products', 'Meus Produtos', 'Gerencie produtos digitais e físicos');
+  <script>
+    const content = BCLayout.init('products', 'Meus Produtos', 'Gerencie produtos digitais e físicos');
 
-        if (content) {
-            const render = () => {
-                const prod = BC.products.getAll();
+    if (content) {
+      const render = () => {
+        const prod = BC.products.getAll();
 
-                content.innerHTML = `
+        content.innerHTML = `
           <div class="page-header">
             <div class="page-header-left">
               <h2>Catálogo de Produtos</h2>
@@ -112,59 +113,59 @@
           </div>
         `;
 
-                // Form Submit
-                document.getElementById('productForm').addEventListener('submit', (e) => {
-                    e.preventDefault();
-                    const pId = document.getElementById('prodId').value;
-                    BC.products.save({
-                        id: pId || undefined,
-                        name: document.getElementById('prodName').value,
-                        price: document.getElementById('prodPrice').value,
-                        type: document.getElementById('prodType').value,
-                        description: document.getElementById('prodDesc').value,
-                        image: document.getElementById('prodImage').value
-                    });
-                    BC.toast.success('Sucesso', 'Produto salvo com sucesso!');
-                    BC.modal.close('productModal');
-                    render();
-                });
+        // Form Submit
+        document.getElementById('productForm').addEventListener('submit', (e) => {
+          e.preventDefault();
+          const pId = document.getElementById('prodId').value;
+          BC.products.save({
+            id: pId || undefined,
+            name: document.getElementById('prodName').value,
+            price: document.getElementById('prodPrice').value,
+            type: document.getElementById('prodType').value,
+            description: document.getElementById('prodDesc').value,
+            image: document.getElementById('prodImage').value
+          });
+          BC.toast.success('Sucesso', 'Produto salvo com sucesso!');
+          BC.modal.close('productModal');
+          render();
+        });
 
-            };
+      };
 
-            render();
+      render();
 
-            window.openProductModal = () => {
-                document.getElementById('modalTitle').textContent = 'Novo Produto';
-                document.getElementById('productForm').reset();
-                document.getElementById('prodId').value = '';
-                BC.modal.open('productModal');
-            };
+      window.openProductModal = () => {
+        document.getElementById('modalTitle').textContent = 'Novo Produto';
+        document.getElementById('productForm').reset();
+        document.getElementById('prodId').value = '';
+        BC.modal.open('productModal');
+      };
 
-            window.editProduct = (id) => {
-                const p = BC.products.get(id);
-                if (p) {
-                    document.getElementById('modalTitle').textContent = 'Editar Produto';
-                    document.getElementById('prodId').value = p.id;
-                    document.getElementById('prodName').value = p.name;
-                    document.getElementById('prodPrice').value = p.price;
-                    document.getElementById('prodType').value = p.type;
-                    document.getElementById('prodDesc').value = p.description || '';
-                    document.getElementById('prodImage').value = p.image || '';
-                    BC.modal.open('productModal');
-                }
-            };
-
-            window.deleteProduct = (id) => {
-                if (confirm('Tem certeza que deseja excluir este produto? Os checkouts vinculados a ele podem parar de funcionar.')) {
-                    BC.products.delete(id);
-                    BC.toast.success('Excluído', 'Produto removido do catálogo.');
-                    render();
-                }
-            };
-
-            BCLayout.sidebar.init();
+      window.editProduct = (id) => {
+        const p = BC.products.get(id);
+        if (p) {
+          document.getElementById('modalTitle').textContent = 'Editar Produto';
+          document.getElementById('prodId').value = p.id;
+          document.getElementById('prodName').value = p.name;
+          document.getElementById('prodPrice').value = p.price;
+          document.getElementById('prodType').value = p.type;
+          document.getElementById('prodDesc').value = p.description || '';
+          document.getElementById('prodImage').value = p.image || '';
+          BC.modal.open('productModal');
         }
-    </script>
+      };
+
+      window.deleteProduct = (id) => {
+        if (confirm('Tem certeza que deseja excluir este produto? Os checkouts vinculados a ele podem parar de funcionar.')) {
+          BC.products.delete(id);
+          BC.toast.success('Excluído', 'Produto removido do catálogo.');
+          render();
+        }
+      };
+
+      BCLayout.sidebar.init();
+    }
+  </script>
 </body>
 
 </html>
