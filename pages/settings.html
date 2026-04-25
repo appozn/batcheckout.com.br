@@ -158,7 +158,7 @@
                   <small style="color:var(--text-muted)">Alerta imediato de geração</small>
                </div>
                <label class="switch">
-                  <input type="checkbox" id="notifyPixToggle" checked>
+                  <input type="checkbox" id="notifyPixToggle">
                   <span class="slider round"></span>
                </label>
             </div>
@@ -169,7 +169,7 @@
                   <small style="color:var(--text-muted)">Alerta de confirmação após 12s</small>
                </div>
                <label class="switch">
-                  <input type="checkbox" id="notifyPaidToggle" checked>
+                  <input type="checkbox" id="notifyPaidToggle">
                   <span class="slider round"></span>
                </label>
             </div>
@@ -195,13 +195,25 @@
         if (idx !== -1) {
           users[idx].name = document.getElementById('uName').value;
           BC.storage.set('users', users);
-          // update session
           user.name = users[idx].name;
-          BC.storage.set('user_session', user);
-          BC.toast.success('Salvo', 'Perfil atualizado com sucesso.');
-          setTimeout(() => window.location.reload(), 1000); // refresh sidebar name
+          BC.storage.set('session', user);
+          BC.toast.success('Perfil Atualizado', 'Sucesso');
+          setTimeout(() => window.location.reload(), 1000);
         }
       });
+
+      const bioToggle = document.getElementById('bioToggle');
+      if (bioToggle) {
+        bioToggle.addEventListener('change', async () => {
+          if (bioToggle.checked) {
+            const ok = await BC.auth.setupBiometrics();
+            if (!ok) bioToggle.checked = false;
+          } else {
+            BC.auth.updateUser(user.id, { biometricsEnabled: false });
+            BC.toast.success('Segurança', 'Autenticação biométrica desativada.');
+          }
+        });
+      }
 
       document.getElementById('passForm').addEventListener('submit', (e) => {
         e.preventDefault();
@@ -279,7 +291,10 @@
           }, i * 800);
         }
 
-        setTimeout(() => window.location.reload(), 1500);
+        console.log('[Settings] Configurações salvas:', { active, notifyPix, notifyPaid, total, sales });
+        BC.toast.success('Simulador Ativo', 'Os ajustes foram salvos e o painel será reiniciado.');
+
+        setTimeout(() => window.location.reload(), 2000);
       };
 
       // Prefill and setup UI

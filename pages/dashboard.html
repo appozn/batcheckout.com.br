@@ -201,32 +201,18 @@
 
       renderQuickActions();
 
-      // 3. PWA Notifications Activation & Listener Simulation
-      setTimeout(() => {
-        if ('Notification' in window && navigator.serviceWorker) {
-          navigator.serviceWorker.register('../sw.js').then(reg => {
-            const channel = new BroadcastChannel('bat_push_sim');
-            channel.addEventListener('message', e => {
-              const payload = e.data;
-              if (Notification.permission === 'granted') {
-                reg.showNotification(payload.title, payload.options);
-              }
-            });
-          });
-
-          if (Notification.permission !== 'granted') {
-            document.getElementById('pushBanner').innerHTML = `
-                          <div class="card card-sm mb-6" style="background:#FF4FA315; border-color:var(--primary); display:flex; justify-content:space-between; align-items:center;">
-                            <div>
-                              <h4 style="color:var(--primary); margin:0; font-size:1.1rem;">Ative as notificações de vendas!</h4>
-                              <p style="margin:4px 0 0; color:var(--text-secondary); font-size:0.9rem;">Receba os alertas de "Pix Gerado" e "Venda Paid!" diretamente na tela do seu celular (Web Push nativo).</p>
-                            </div>
-                            <button class="btn btn-primary" onclick="requestPush()">Ativar notificações de vendas</button>
-                          </div>
-                        `;
-          }
-        }
-      }, 500);
+      // Native Notification Banner Logic
+      if ('Notification' in window && Notification.permission !== 'granted') {
+        document.getElementById('pushBanner').innerHTML = `
+          <div class="card card-sm mb-6" style="background:#FF4FA315; border-color:var(--primary); display:flex; justify-content:space-between; align-items:center;">
+            <div>
+              <h4 style="color:var(--primary); margin:0; font-size:1.1rem;">Ative as notificações de vendas!</h4>
+              <p style="margin:4px 0 0; color:var(--text-secondary); font-size:0.9rem;">Receba os alertas de "Pix Gerado" e "Venda Paid!" diretamente na tela do seu celular (Web Push nativo).</p>
+            </div>
+            <button class="btn btn-primary" onclick="requestPush()">Ativar notificações de vendas</button>
+          </div>
+        `;
+      }
 
       window.requestPush = () => {
         Notification.requestPermission().then(perm => {

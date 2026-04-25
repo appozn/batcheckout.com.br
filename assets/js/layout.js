@@ -73,7 +73,7 @@ window.BCLayout = {
         <div class="topbar-right">
           <div class="topbar-btn" id="notifBellBtn" title="Notificações" style="position:relative; cursor:pointer;">
             ${BC.icon('bell')}
-            <div class="notif-badge">3</div>
+            <div class="notif-badge" id="notifCount" style="display:none;">0</div>
           </div>
           <div class="topbar-btn" title="Atualizar" onclick="window.location.reload()">
             ${BC.icon('refresh')}
@@ -110,7 +110,11 @@ window.BCLayout = {
     // Logout
     document.getElementById('userMenuBtn')?.addEventListener('click', () => BC.auth.logout());
 
-    // 3. PWA Notifications Activation & Listener Simulation
+    // 3. PWA & Background Notification Initialization
+    if ('Notification' in window && navigator.serviceWorker) {
+      navigator.serviceWorker.register('../sw.js');
+    }
+
     setTimeout(() => {
       if ('Notification' in window && navigator.serviceWorker) {
         Notification.requestPermission();
@@ -138,7 +142,9 @@ window.BCLayout = {
 
               const name = window.BC_AutoPilot.names[Math.floor(Math.random() * window.BC_AutoPilot.names.length)];
               const product = Math.random() > 0.5 ? config.p1 : config.p2;
-              const value = config.values[Math.floor(Math.random() * config.values.length)] || 97;
+              const values = (config && config.values && config.values.length > 0) ? config.values : [97, 147, 197];
+              const value = values[Math.floor(Math.random() * values.length)] || 97;
+              console.log(`[AutoPilot] Disparando venda: ${product} - R$ ${value}`);
 
               // 1. Pix Gerado
               if (config.notifyPix !== false) {
@@ -216,15 +222,32 @@ window.BCLayout = {
     }
 
     // Real-time Push Listener
-    const uid = BC.auth.getCurrentUser()?.id;
+    const currentUser = BC.auth.getCurrentUser();
+    const uid = currentUser?.id;
     if (uid) {
+      console.log(`[Push] Ouvindo canal: notif_${uid}`);
       const channel = new BroadcastChannel(`notif_${uid}`);
       channel.onmessage = (event) => {
-        if (event.data.type === 'push') {
-          BC.toast.success(event.data.title, event.data.message);
-          // Try to show browser native notification if allowed
+        const data = event.data;
+        if (data && data.type === 'push') {
+          console.log('[Push] Mensagem recebida:', data);
+          BC.toast.success(data.title, data.message);
+
+          // Update visual badge
+          const badge = document.getElementById('notifCount');
+          if (badge) {
+            badge.style.display = 'block';
+            badge.textContent = (parseInt(badge.textContent) || 0) + 1;
+          }
+
+          // Native Background Notif
           if ('Notification' in window && Notification.permission === 'granted') {
-            try { new Notification(event.data.title, { body: event.data.message, icon: '../assets/logo.png' }); } catch (e) { }
+            const options = { body: data.message, icon: '../assets/logo.png' };
+            try { new Notification(data.title, options); } catch (e) {
+              if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+                navigator.serviceWorker.controller.postMessage({ type: 'SHOW_NOTIF', title: data.title, options });
+              }
+            }
           }
         }
       };

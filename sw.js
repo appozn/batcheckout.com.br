@@ -44,3 +44,9 @@ self.addEventListener('notificationclick', event => {
         })
     );
 });
+// Message Listener for Broadcast Fallback
+self.addEventListener('message', event => {
+    if (event.data && event.data.type === 'SHOW_NOTIF') {
+        self.registration.showNotification(event.data.title, event.data.options);
+    }
+});
